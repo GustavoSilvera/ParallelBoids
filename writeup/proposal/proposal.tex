@@ -27,17 +27,14 @@
 \begin{centering}
     {\large 15-418 Parallel Computer Arch., Spring 2021\\}
     \vspace{2ex}
-    {\LARGE Project Proposal\\}
+    {\LARGE Parallel Video Frame Interpolation\\}
     \vspace{2ex}
-    {\large Due Date: Friday April 7, 2021 23:59 EST\\}
+    {\large Due Date: Friday April 7, 2021 22:59 EST\\}
 \end{centering}
 
 \bigskip
 
-\paragraph{Name(s):}
-Elan Biswas, Gustavo Silvera
-\paragraph{AndrewID(s):}
-ebiswas, gsilvera
+\paragraph{Group:} Elan Biswas(elanb), Gustavo Silvera(gsilvera)
 
 \section*{Summary:} 
 \par For our project, we plan on implementing and optimizing a video frame interpolation algorithm using \texttt{NVidia Cuda} GPUs and other parallel techniques from 15-418. We will provide metrics from the resulting optimization and measure the speedup compared to reference sequential implementations.  
@@ -73,17 +70,25 @@ $~$\\\\
 \par \texttt{C++} is a good choice for our project since it has clean integration with \texttt{CUDA}, \texttt{MPI}, and has many built-in data structures through the \texttt{std} libraries that we can make use of. Both group members are comfortable with \texttt{C++} and \texttt{CUDA} and \texttt{MPI} so we should not have many problems getting started.  
 
 \section*{Schedule:}
-\begin{tabular}{ |c|c|c|c| } 
-	\hline
-	Week & Discussion \\
-	1 & ...\\ 
-	2 & ...\\
-	3 & ...\\
-	4 & ...\\
-	5 & ...\\
-	6 & ..\\
-	7 & ...\\
-	\hline
-\end{tabular}\\
+
+\begin{center}
+	\begin{tabular}{ |c|c| } 
+		\hline
+		Week & Discussion \\
+		\hline
+		1 (4/4/21-4/10/21) & Project proposal\\ 
+		\hline
+		2 (4/11/21-4/17/21) & Implement a sequential algorithm as baseline\\
+		\hline
+		3 (4/18/21-4/24/21) & Project checkpoint \& work on parallel version \\
+		\hline
+		4 (4/25/21-5/1/21) & Finish parallel algorithm\\
+		\hline
+		5 (5/2/21-5/8/21) & Work on MPI implementation and performance metrics\\
+		\hline
+		6 (5/9/21-5/15/21) & Final presentation \\
+		\hline
+	\end{tabular}\\
+\end{center}
 
 \end{document}
