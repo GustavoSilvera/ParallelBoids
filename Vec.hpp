@@ -1,9 +1,9 @@
-#ifndef VECTOR
-#define VECTOR
+#ifndef VECT
+#define VECT
 
 #include "Utils.hpp"
+#include <array>
 #include <cmath>
-#include <vector>
 
 /// TODO: use template magic
 class Vec2D
@@ -16,8 +16,8 @@ class Vec2D
 
     Vec2D(double x, double y)
     {
-        Data.push_back(x);
-        Data.push_back(y);
+        Data[0] = x;
+        Data[1] = y;
     }
 
     Vec2D(const double init)
@@ -25,16 +25,16 @@ class Vec2D
         for (size_t i = 0; i < 2; i++)
         {
             // allocate data
-            Data.push_back(0);
+            Data[i] = init;
         }
     }
 
-    Vec2D(const Vec2D *Copy) // duplicate vector
+    Vec2D(const std::array<double, 2> &Copy) // duplicate vector
     {
         for (size_t i = 0; i < 2; i++)
         {
             // Copy data over
-            Data.push_back((*Copy)[i]);
+            Data[i] = Copy[i];
         }
     }
 
@@ -56,7 +56,7 @@ class Vec2D
     //////////// :CREATION: //////////////
     Vec2D operator+(const Vec2D &Other) const
     {
-        Vec2D Ret(this);
+        Vec2D Ret(Data);
         for (size_t i = 0; i < 2; i++)
         {
             Ret.Data[i] += Other.Data[i];
@@ -66,7 +66,7 @@ class Vec2D
 
     Vec2D operator-(const Vec2D &Other) const
     {
-        Vec2D Ret(this);
+        Vec2D Ret(Data);
         for (size_t i = 0; i < 2; i++)
         {
             Ret.Data[i] -= Other.Data[i];
@@ -76,7 +76,7 @@ class Vec2D
 
     Vec2D operator/(const double Denom) const
     {
-        Vec2D Ret(this);
+        Vec2D Ret(Data);
         for (size_t i = 0; i < 2; i++)
         {
             Ret.Data[i] /= Denom;
@@ -86,7 +86,7 @@ class Vec2D
 
     Vec2D operator*(const double Scale) const
     {
-        Vec2D Ret(this);
+        Vec2D Ret(Data);
         for (size_t i = 0; i < 2; i++)
         {
             Ret.Data[i] *= Scale;
@@ -129,11 +129,10 @@ class Vec2D
 
     void operator=(const Vec2D &Other)
     {
-        Data.clear();
         for (size_t i = 0; i < 2; i++)
         {
             // ensures elements are present
-            Data.push_back(Other[i]);
+            Data[i] = Other[i];
         }
     }
 
@@ -144,7 +143,7 @@ class Vec2D
     }
 
     // Easiest if Data is public
-    std::vector<double> Data;
+    std::array<double, 2> Data; /// TODO: template the size
 };
 
 #endif
