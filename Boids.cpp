@@ -5,6 +5,9 @@
 const int MaxWidth = 500;
 const int MaxHeight = 500;
 
+Vec2D COM;    // static centre of mass for all boids
+Vec2D AvgVel; // static centre of mass for all boids
+
 class boid_t
 {
   public:
@@ -15,13 +18,11 @@ class boid_t
     }
     Vec2D Position; // 2d vector of doubles
     Vec2D Velocity;
-    static Vec2D COM;    // static centre of mass for all boids
-    static Vec2D AvgVel; // static centre of mass for all boids
     Vec2D rule1() const
     {
         // "fly towards the centre of mass of neighbouring boids"
         float Ferocity = 0.01; // moves 1% of the way to the COM
-        return (boid_t::COM - Position) * Ferocity;
+        return (COM - Position) * Ferocity;
     }
 
     Vec2D rule2(std::vector<boid_t> &AllBoids) const
@@ -30,10 +31,10 @@ class boid_t
         Vec2D Disp; // displacement away from neighbouring boids
         for (const boid_t &Neighbour : AllBoids)
         {
-            if ((Neighbour.Position - Position).norm() < 100.0)
+            if ((Neighbour.Position - Position).NormSqr() < sqr(100.0))
             {
                 // pushes away from nearby boids, displaces 0 if itself
-                Disp = Disp - (Neighbour.Position - Position);
+                Disp -= (Neighbour.Position - Position);
             }
         }
         return Disp;
@@ -43,7 +44,7 @@ class boid_t
     {
         // try to match velocity to the rest of the group
         float Ferocity = 0.125; // moves 1/8th of the way to the AvgVel
-        return (boid_t::AvgVel - Velocity) * Ferocity;
+        return (AvgVel - Velocity) * Ferocity;
     }
 
     void Update(std::vector<boid_t> &AllBoids)
@@ -66,29 +67,29 @@ class boid_t
     static void ComputeCOM(std::vector<boid_t> &AllBoids)
     {
         // the "centre of mass" of all the boids
-        boid_t::COM = Vec2D(0, 0); // reset from last time
+        COM = Vec2D(0, 0); // reset from last time
         for (const boid_t &boid : AllBoids)
         {
-            boid_t::COM += boid.Position; // accumulate all boids
+            COM += boid.Position; // accumulate all boids
         }
-        boid_t::COM /= AllBoids.size(); // divide by count
+        COM /= AllBoids.size(); // divide by count
     }
 
     static void ComputeAvgVel(std::vector<boid_t> &AllBoids)
     {
         // the "centre of mass" of all the boids
-        boid_t::AvgVel = Vec2D(0, 0); // reset from last time
+        AvgVel = Vec2D(0, 0); // reset from last time
         for (const boid_t &boid : AllBoids)
         {
-            boid_t::AvgVel += boid.Velocity; // accumulate all boids
+            AvgVel += boid.Velocity; // accumulate all boids
         }
-        boid_t::AvgVel /= AllBoids.size(); // divide by count
+        AvgVel /= AllBoids.size(); // divide by count
     }
 };
 
 void ComputeFrame(std::vector<boid_t> &AllBoids, const double t)
 {
-    std::string FrameTitle = "Frame" + std::to_string(t) + ".png";
+    std::string FrameTitle = "Frame" + std::to_string(t) + ".ppm";
     std::vector<std::vector<Colour>> Frame = BlankImage(MaxWidth, MaxHeight);
     boid_t::ComputeCOM(AllBoids);    // technically incorrect
     boid_t::ComputeAvgVel(AllBoids); // technically incorrect
@@ -105,8 +106,8 @@ std::vector<boid_t> InitBoids()
 {
     std::vector<boid_t> AllBoids;
     const int NumBoids = 100;
-    boid_t::COM = Vec2D(0, 0);
-    boid_t::AvgVel = Vec2D(0, 0);
+    COM = Vec2D(0, 0);
+    AvgVel = Vec2D(0, 0);
     for (size_t i = 0; i < NumBoids; i++)
     {
         int x0 = std::rand() % MaxWidth;
@@ -123,9 +124,9 @@ int main()
     std::vector<boid_t> AllBoids = InitBoids();
     const double dt = 0.05;
     double t = 0;
+    ComputeFrame(AllBoids, t);
     while (t < TimeBudget)
     {
-        ComputeFrame(AllBoids, t);
         t += dt;
     }
     return 0;

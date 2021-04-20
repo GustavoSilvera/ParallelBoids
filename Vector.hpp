@@ -10,10 +10,9 @@ class Vec2D
 {
   public:
     //////////// :CONSTRUCTORS: //////////////
-    Vec2D()
+    Vec2D() : Vec2D(0.0)
     {
-        Vec2D(0.0); // default to 0 unless specified
-    }
+    } // delegate constructor, default value 0
 
     Vec2D(double x, double y)
     {
@@ -39,7 +38,7 @@ class Vec2D
         }
     }
 
-    double normSqr() const
+    double NormSqr() const
     {
         double sum = 0;
         for (size_t i = 0; i < 2; i++)
@@ -49,9 +48,9 @@ class Vec2D
         return sum;
     }
 
-    double norm() const
+    double Norm() const
     {
-        return std::sqrt(normSqr());
+        return std::sqrt(NormSqr());
     }
 
     //////////// :CREATION: //////////////
@@ -125,6 +124,16 @@ class Vec2D
         for (size_t i = 0; i < 2; i++)
         {
             Data[i] *= Scale;
+        }
+    }
+
+    void operator=(const Vec2D &Other)
+    {
+        Data.clear();
+        for (size_t i = 0; i < 2; i++)
+        {
+            // ensures elements are present
+            Data.push_back(Other[i]);
         }
     }
 

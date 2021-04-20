@@ -2,7 +2,7 @@ TARGET = Boids
 OBJS += Boids.o
 
 CXX = clang++
-CFLAGS = -std=c++11 -Wall -Werror -pedantic -g -O3 -DNDEBUG 
+CFLAGS = -std=c++11 -Wall -Werror -pedantic -g -DNDEBUG 
 
 LDFLAGS += $(LIBS)
 
