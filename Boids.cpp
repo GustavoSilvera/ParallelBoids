@@ -1,4 +1,4 @@
-#include <opencv2/opencv.hpp>
+#include "Vector.hpp"
 #include <vector>
 
 /// TODO: don't use globals
@@ -7,29 +7,30 @@ const int MaxHeight = 500;
 
 class boid_t
 {
+  public:
     boid_t(int x0, int y0)
     {
-        Position = cv::Vec2d(x0, y0); // set posixtion
-        Velocity = cv::Vec2d(0, 0);   // set initial velocity
+        Position = Vec2D(x0, y0); // set posixtion
+        Velocity = Vec2D(0, 0);   // set initial velocity
     }
-    cv::Vec2d Position; // 2d vector of doubles
-    cv::Vec2d Velocity;
-    static cv::Vec2d COM(0, 0);    // static centre of mass for all boids
-    static cv::Vec2d AvgVel(0, 0); // static centre of mass for all boids
-    cv::Vec2d rule1() const
+    Vec2D Position; // 2d vector of doubles
+    Vec2D Velocity;
+    static Vec2D COM;    // static centre of mass for all boids
+    static Vec2D AvgVel; // static centre of mass for all boids
+    Vec2D rule1() const
     {
         // "fly towards the centre of mass of neighbouring boids"
         float Ferocity = 0.01; // moves 1% of the way to the COM
         return (boid_t::COM - Position) * Ferocity;
     }
 
-    cv::Vec2d rule2(std::vector<boid_t> &AllBoids) const
+    Vec2D rule2(std::vector<boid_t> &AllBoids) const
     {
         // slightly "steer away" from nearby boids to avoid collisions
-        cv::Vec2d Disp; // displacement away from neighbouring boids
+        Vec2D Disp; // displacement away from neighbouring boids
         for (const boid_t &Neighbour : AllBoids)
         {
-            if (std::abs(Neighbour.Position - Position) < 100.0)
+            if ((Neighbour.Position - Position).norm() < 100.0)
             {
                 // pushes away from nearby boids, displaces 0 if itself
                 Disp = Disp - (Neighbour.Position - Position);
@@ -38,7 +39,7 @@ class boid_t
         return Disp;
     }
 
-    cv::Vec2d rule3() const
+    Vec2D rule3() const
     {
         // try to match velocity to the rest of the group
         float Ferocity = 0.125; // moves 1/8th of the way to the AvgVel
@@ -47,24 +48,25 @@ class boid_t
 
     void Update(std::vector<boid_t> &AllBoids)
     {
-        cv::Vec2d v1 = rule1();
-        cv::Vec2d v2 = rule2(AllBoids);
-        cv::Vec2d v3 = rule3(AllBoids);
-        Velocity = Velocity + v1 + v2 + v3;
-        Position = Positoin + Velocity;
+        Vec2D v1 = rule1();
+        Vec2D v2 = rule2(AllBoids);
+        Vec2D v3 = rule3();
+        Velocity += v1 + v2 + v3;
+        Position += Velocity;
     }
 
-    void Draw(cv::Mat &Frame) const
+    void Draw(std::vector<std::vector<Colour>> &Frame) const
     {
         // draws a singular (white) pixel for now
-        cv::Point Location = cv::Point(Position[0], Position[1]);
-        Frame.at<cv::Vec3b>(Location) = cv::Vec3b(255, 255, 255);
+        const size_t X = Position[0];
+        const size_t Y = Position[1];
+        Frame[Y][X] = Colour(1.0, 1.0, 1.0);
     }
 
     static void ComputeCOM(std::vector<boid_t> &AllBoids)
     {
         // the "centre of mass" of all the boids
-        boid_t::COM = cv::Vec2d(0, 0); // reset from last time
+        boid_t::COM = Vec2D(0, 0); // reset from last time
         for (const boid_t &boid : AllBoids)
         {
             boid_t::COM += boid.Position; // accumulate all boids
@@ -75,7 +77,7 @@ class boid_t
     static void ComputeAvgVel(std::vector<boid_t> &AllBoids)
     {
         // the "centre of mass" of all the boids
-        boid_t::AvgVel = cv::Vec2d(0, 0); // reset from last time
+        boid_t::AvgVel = Vec2D(0, 0); // reset from last time
         for (const boid_t &boid : AllBoids)
         {
             boid_t::AvgVel += boid.Velocity; // accumulate all boids
@@ -87,7 +89,7 @@ class boid_t
 void ComputeFrame(std::vector<boid_t> &AllBoids, const double t)
 {
     std::string FrameTitle = "Frame" + std::to_string(t) + ".png";
-    cv::Mat Frame = cv::Mat::zeros(Size(MaxWidth, MaxHeight), cd::CV_8UC1);
+    std::vector<std::vector<Colour>> Frame = BlankImage(MaxWidth, MaxHeight);
     boid_t::ComputeCOM(AllBoids);    // technically incorrect
     boid_t::ComputeAvgVel(AllBoids); // technically incorrect
     for (boid_t &B : AllBoids)
@@ -95,14 +97,16 @@ void ComputeFrame(std::vector<boid_t> &AllBoids, const double t)
         B.Draw(Frame);
         B.Update(AllBoids);
     }
-    cv::imwrite(FrameTitle, Frame); // should return true
-    return
+    WritePPMImage(Frame, MaxWidth, MaxHeight, FrameTitle);
+    return;
 }
 
 std::vector<boid_t> InitBoids()
 {
     std::vector<boid_t> AllBoids;
     const int NumBoids = 100;
+    boid_t::COM = Vec2D(0, 0);
+    boid_t::AvgVel = Vec2D(0, 0);
     for (size_t i = 0; i < NumBoids; i++)
     {
         int x0 = std::rand() % MaxWidth;
@@ -122,6 +126,7 @@ int main()
     while (t < TimeBudget)
     {
         ComputeFrame(AllBoids, t);
+        t += dt;
     }
     return 0;
 }
