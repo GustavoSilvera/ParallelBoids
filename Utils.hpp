@@ -70,7 +70,7 @@ void WritePPMImage(const std::vector<std::vector<Colour>> &Data, const int Width
         }
     }
     Img.close();
-    std::cout << "Wrote image file: " << Filename << std::endl;
+    std::cout << "Wrote image file: " << Filename << "\r" << std::flush; // carriage return, no newline
 }
 
 #endif

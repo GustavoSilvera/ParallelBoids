@@ -48,14 +48,14 @@ class boid_t
         return (AvgVel - Velocity) * Ferocity;
     }
 
-    void Update(std::vector<boid_t> &AllBoids)
+    void Update(std::vector<boid_t> &AllBoids, const double dt)
     {
         Vec2D v1 = rule1();
         Vec2D v2 = rule2(AllBoids);
         Vec2D v3 = rule3();
         // add more rules here
         Velocity = boid_t::LimitVelocity(Velocity + v1 + v2 + v3);
-        Position += Velocity;
+        Position += Velocity * dt;
     }
 
     void Draw(std::vector<std::vector<Colour>> &Frame) const
@@ -104,8 +104,9 @@ class boid_t
     }
 };
 
-void ComputeFrame(std::vector<boid_t> &AllBoids, const double t)
+void ComputeFrame(std::vector<boid_t> &AllBoids, const double t, const double dt)
 {
+    /// TODO: figure out how to generate the Out/ directory
     std::string FramePath = "Out/";
     std::string FrameTitle = "Frame" + std::to_string(t) + ".ppm";
     std::vector<std::vector<Colour>> Frame = BlankImage(MaxWidth, MaxHeight);
@@ -114,7 +115,7 @@ void ComputeFrame(std::vector<boid_t> &AllBoids, const double t)
     for (boid_t &B : AllBoids)
     {
         B.Draw(Frame);
-        B.Update(AllBoids);
+        B.Update(AllBoids, dt);
     }
     WritePPMImage(Frame, MaxWidth, MaxHeight, FramePath + FrameTitle);
     return;
@@ -140,19 +141,20 @@ int main()
 {
     std::srand(0); // consistent seed
 
-    double TimeBudget = 2.0;
+    double TimeBudget = 10.0;
     std::vector<boid_t> AllBoids = InitBoids();
     const double dt = 0.05;
     double t = 0;
     while (t < TimeBudget)
     {
-        ComputeFrame(AllBoids, t);
+        ComputeFrame(AllBoids, t, dt);
         t += dt;
     }
+    std::cout << std::endl << "Finished simulation!" << std::endl;
     return 0;
 }
 
 /// NOTE: resources:
 /// PSEUDOCODE: http://www.vergenet.net/~conrad/boids/pseudocode.html
 /// OVERVIEW: https://cs.stanford.edu/people/eroberts/courses/soco/projects/2008-09/modeling-natural-systems/boids.html
-/// BASELINE: https://eater.net/boids
+/// EXAMPLE: https://eater.net/boids
