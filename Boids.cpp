@@ -1,4 +1,5 @@
 #include "Vector.hpp"
+#include <cstdlib>
 #include <vector>
 
 /// TODO: don't use globals
@@ -52,7 +53,8 @@ class boid_t
         Vec2D v1 = rule1();
         Vec2D v2 = rule2(AllBoids);
         Vec2D v3 = rule3();
-        Velocity += v1 + v2 + v3;
+        // add more rules here
+        Velocity = boid_t::LimitVelocity(Velocity + v1 + v2 + v3);
         Position += Velocity;
     }
 
@@ -61,7 +63,22 @@ class boid_t
         // draws a singular (white) pixel for now
         const size_t X = Position[0];
         const size_t Y = Position[1];
-        Frame[Y][X] = Colour(1.0, 1.0, 1.0);
+        bool WithinWidth = (0 <= X && X < MaxWidth);
+        bool WithinHeight = (0 <= Y && Y < MaxHeight);
+        if (WithinWidth && WithinHeight)
+        {
+            Frame[Y][X] = Colour(255.0, 255.0, 255.0);
+        }
+    }
+
+    static Vec2D LimitVelocity(const Vec2D Velocity)
+    {
+        const double MaxVel = 10;
+        if (Velocity.NormSqr() > sqr(MaxVel))
+        {
+            return (Velocity / Velocity.Norm()) * MaxVel;
+        }
+        return Velocity;
     }
 
     static void ComputeCOM(std::vector<boid_t> &AllBoids)
@@ -89,6 +106,7 @@ class boid_t
 
 void ComputeFrame(std::vector<boid_t> &AllBoids, const double t)
 {
+    std::string FramePath = "Out/";
     std::string FrameTitle = "Frame" + std::to_string(t) + ".ppm";
     std::vector<std::vector<Colour>> Frame = BlankImage(MaxWidth, MaxHeight);
     boid_t::ComputeCOM(AllBoids);    // technically incorrect
@@ -98,7 +116,7 @@ void ComputeFrame(std::vector<boid_t> &AllBoids, const double t)
         B.Draw(Frame);
         B.Update(AllBoids);
     }
-    WritePPMImage(Frame, MaxWidth, MaxHeight, FrameTitle);
+    WritePPMImage(Frame, MaxWidth, MaxHeight, FramePath + FrameTitle);
     return;
 }
 
@@ -120,13 +138,15 @@ std::vector<boid_t> InitBoids()
 
 int main()
 {
+    std::srand(0); // consistent seed
+
     double TimeBudget = 2.0;
     std::vector<boid_t> AllBoids = InitBoids();
     const double dt = 0.05;
     double t = 0;
-    ComputeFrame(AllBoids, t);
     while (t < TimeBudget)
     {
+        ComputeFrame(AllBoids, t);
         t += dt;
     }
     return 0;
