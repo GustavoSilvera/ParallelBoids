@@ -26,7 +26,7 @@ class Boid_t
     Vec2D rule1() const
     {
         // "fly towards the centre of mass of neighbouring boids"
-        float Ferocity = 0.1; // moves 10% of the way to the COM
+        float Ferocity = 0.05; // moves 10% of the way to the COM
         return (COM - Position) * Ferocity;
     }
 
@@ -34,10 +34,10 @@ class Boid_t
     {
         // slightly "steer away" from nearby boids to avoid collisions
         Vec2D Disp; // displacement away from neighbouring boids
-        const float AvoidFerocity = 0.15;
+        const float AvoidFerocity = 1.55;
         for (const Boid_t &Neighbour : AllBoids)
         {
-            if ((Neighbour.Position - Position).NormSqr() < sqr(Size))
+            if ((Neighbour.Position - Position).NormSqr() < sqr(2 * Size))
             {
                 // pushes away from nearby boids, displaces 0 if itself
                 Disp -= (Neighbour.Position - Position) * AvoidFerocity;
@@ -49,14 +49,14 @@ class Boid_t
     Vec2D rule3() const
     {
         // try to match velocity to the rest of the group
-        float Ferocity = 0.15; // moves 1/8th of the way to the AvgVel
+        float Ferocity = 0.05; // moves 1/8th of the way to the AvgVel
         return (AvgVel - Velocity) * Ferocity;
     }
 
     Vec2D rule4() const
     {
         // move the flock's goal to some target position
-        const double Ferocity = 0.05; // of which to go to this position
+        const double Ferocity = 0.15; // of which to go to this position
         return (Target - Position) * Ferocity;
     }
 
@@ -125,7 +125,7 @@ class Boid_t
     static void ComputeTarget()
     {
         Target -= Vec2D(MaxWidth / 2.0, MaxHeight / 2.0);
-        Target = Target.rotate(0.01 * t);
+        Target = Target.rotate(0.01); // how much rotation
         Target += Vec2D(MaxWidth / 2.0, MaxHeight / 2.0);
     }
 };
