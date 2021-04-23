@@ -65,9 +65,9 @@ void WritePPMImage(const std::array<std::array<Colour, Ht>, Wt> &Data, const siz
 
     std::ofstream Img(Filename, std::ios_base::out | std::ios_base::binary);
     Img << "P6" << std::endl << W << " " << H << std::endl << "255" << std::endl; // write ppm header
-    for (size_t i = 0; i < H; ++i)
+    for (size_t j = 0; j < H; ++j)
     {
-        for (size_t j = 0; j < W; ++j)
+        for (size_t i = 0; i < W; ++i)
         {
             const Colour RGB = Data[i][j];
             Img << char(RGB.R) << char(RGB.G) << char(RGB.B);
