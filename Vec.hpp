@@ -53,6 +53,14 @@ class Vec2D
         return std::sqrt(NormSqr());
     }
 
+    Vec2D rotate(const double angle) const
+    {
+        /// TODO: make one that operates on vector itself
+        const double rX = cos(angle) * Data[0] - sin(angle) * Data[1];
+        const double rY = sin(angle) * Data[0] + cos(angle) * Data[1];
+        return Vec2D(rX, rY);
+    }
+
     //////////// :CREATION: //////////////
     Vec2D operator+(const Vec2D &Other) const
     {
@@ -146,5 +154,29 @@ class Vec2D
     // Easiest if Data is public
     std::array<double, 2> Data; /// TODO: template the size
 };
+
+void DrawCircle(std::array<std::array<Colour, Ht>, Wt> &Frame, const Vec2D &Position, const size_t Radius,
+                const Colour &C)
+{
+    const size_t X = Position[0];
+    const size_t Y = Position[1];
+    // render circle as body of boid
+    for (size_t pX = X - Radius; pX < X + Radius; pX++)
+    {
+        for (size_t pY = Y - Radius; pY < Y + Radius; pY++)
+        {
+            bool WithinWidth = (0 <= pX && pX < Wt);
+            bool WithinHeight = (0 <= pY && pY < Ht);
+            Vec2D Pixel(pX, pY);
+            if ((Pixel - Position).NormSqr() < sqr(Radius))
+            {
+                if (WithinWidth && WithinHeight) // draw boid within bound (triangle)
+                {
+                    Frame[pX][pY] = C;
+                }
+            }
+        }
+    }
+}
 
 #endif

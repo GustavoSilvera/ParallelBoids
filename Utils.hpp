@@ -1,6 +1,7 @@
 #ifndef UTILS
 #define UTILS
 
+#include <array>
 #include <cstdio>
 #include <fstream>
 #include <iostream>
@@ -39,31 +40,34 @@ class Colour
     }
 };
 
-std::vector<std::vector<Colour>> BlankImage(const int Width, const int Height)
+constexpr size_t Wt = 500;
+constexpr size_t Ht = 500;
+
+std::array<std::array<Colour, Ht>, Wt> BlankImage(const size_t H, const size_t W)
 {
-    std::vector<std::vector<Colour>> Img;
-    for (int i = 0; i < Width; i++)
+    std::array<std::array<Colour, Ht>, Wt> Img;
+    for (int i = 0; i < W; i++)
     {
-        std::vector<Colour> Row;
-        for (int j = 0; j < Height; j++)
+        std::array<Colour, Ht> Row;
+        for (int j = 0; j < H; j++)
         {
-            Row.push_back(Colour(0, 0, 0));
+            Row[i] = Colour(0, 0, 0);
         }
-        Img.push_back(Row);
+        Img[i] = Row;
     }
     return Img;
 }
 
-void WritePPMImage(const std::vector<std::vector<Colour>> &Data, const int Width, const int Height,
+void WritePPMImage(const std::array<std::array<Colour, Ht>, Wt> &Data, const size_t H, const size_t W,
                    const std::string &Filename)
 {
     /// NOTE: requires data[i][j] to be RGB within (0, 0, 0) and (255, 255, 255)
 
     std::ofstream Img(Filename, std::ios_base::out | std::ios_base::binary);
-    Img << "P6" << std::endl << Width << " " << Height << std::endl << "255" << std::endl; // write ppm header
-    for (size_t i = 0; i < Height; ++i)
+    Img << "P6" << std::endl << W << " " << H << std::endl << "255" << std::endl; // write ppm header
+    for (size_t i = 0; i < H; ++i)
     {
-        for (size_t j = 0; j < Width; ++j)
+        for (size_t j = 0; j < W; ++j)
         {
             const Colour RGB = Data[i][j];
             Img << char(RGB.R) << char(RGB.G) << char(RGB.B);
