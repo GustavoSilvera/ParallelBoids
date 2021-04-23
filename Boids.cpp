@@ -1,4 +1,5 @@
 #include "Vec.hpp"
+#include <cmath> // atan
 #include <cstdlib>
 #include <vector>
 
@@ -63,15 +64,40 @@ class boid_t
         // draws a singular (white) pixel for now
         const size_t X = Position[0];
         const size_t Y = Position[1];
-        bool WithinWidth = (0 <= X && X < MaxWidth);
-        bool WithinHeight = (0 <= Y && Y < MaxHeight);
-        if (WithinWidth && WithinHeight)
+        const size_t size = 5; // size of circle
+        // render circle as body of boid
+        for (size_t pX = X - size; pX < X + size; pX++)
         {
-            Frame[Y][X] = Colour(255.0, 255.0, 255.0);
+            for (size_t pY = Y - size; pY < Y + size; pY++)
+            {
+                bool WithinWidth = (0 <= pX && pX < MaxWidth);
+                bool WithinHeight = (0 <= pY && pY < MaxHeight);
+                Vec2D Pixel(pX, pY);
+                if ((Pixel - Position).NormSqr() < sqr(size))
+                {
+                    if (WithinWidth && WithinHeight) // draw boid within bound (triangle)
+                    {
+                        Frame[pY][pX] = Colour(255.0, 255.0, 255.0);
+                    }
+                }
+            }
+        }
+        // also render line to indicate direction
+        const size_t LineWidth = 10; // number pixels
+        Vec2D HeadingVec = Velocity / Velocity.Norm();
+        for (size_t i = 0; i < LineWidth; i++)
+        {
+            Vec2D Pixel = Position + HeadingVec * i;
+            bool WithinWidth = (0 <= Pixel[0] && Pixel[0] < MaxWidth);
+            bool WithinHeight = (0 <= Pixel[1] && Pixel[1] < MaxHeight);
+            if (WithinWidth && WithinHeight) // draw boid within bound (triangle)
+            {
+                Frame[Pixel[1]][Pixel[0]] = Colour(255.0, 255.0, 255.0);
+            }
         }
     }
 
-    static Vec2D LimitVelocity(const Vec2D Velocity)
+    static Vec2D LimitVelocity(const Vec2D &Velocity)
     {
         const double MaxVel = 10;
         if (Velocity.NormSqr() > sqr(MaxVel))
@@ -141,7 +167,7 @@ int main()
 {
     std::srand(0); // consistent seed
 
-    double TimeBudget = 10.0;
+    double TimeBudget = 5.0;
     std::vector<boid_t> AllBoids = InitBoids();
     const double dt = 0.05;
     double t = 0;

@@ -84,6 +84,7 @@ class Vec2D
         return Ret;
     }
 
+    /// TODO: add template <typename T>
     Vec2D operator*(const double Scale) const
     {
         Vec2D Ret(Data);
