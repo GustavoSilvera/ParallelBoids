@@ -7,6 +7,7 @@
 /// TODO: don't use globals
 const int MaxWidth = 500;
 const int MaxHeight = 500;
+const int NumBoids = 100;
 
 Vec2D COM;    // static centre of mass for all boids
 Vec2D AvgVel; // static centre of mass for all boids
@@ -27,7 +28,8 @@ class Boid_t
     {
         // "fly towards the centre of mass of neighbouring boids"
         float Ferocity = 0.05; // moves 10% of the way to the COM
-        return (COM - Position) * Ferocity;
+        Vec2D RelativeCOM = ((COM * NumBoids) - Position) / (NumBoids - 1);
+        return (RelativeCOM - Position) * Ferocity;
     }
 
     Vec2D rule2(std::vector<Boid_t> &AllBoids) const
@@ -50,7 +52,8 @@ class Boid_t
     {
         // try to match velocity to the rest of the group
         float Ferocity = 0.05; // moves 1/8th of the way to the AvgVel
-        return (AvgVel - Velocity) * Ferocity;
+        Vec2D RelativeAvgVel = ((AvgVel * NumBoids) - Velocity) / (NumBoids - 1);
+        return (RelativeAvgVel - Velocity) * Ferocity;
     }
 
     Vec2D rule4() const
@@ -152,7 +155,6 @@ void ComputeFrame(std::vector<Boid_t> &AllBoids, const double t, const double dt
 std::vector<Boid_t> InitBoids()
 {
     std::vector<Boid_t> AllBoids;
-    const int NumBoids = 100;
     COM = Vec2D(0, 0);
     AvgVel = Vec2D(0, 0);
     Target = Vec2D(MaxWidth / 2.0, MaxHeight / 2.0) + Vec2D(200, 0); // middle of the screen + offset
