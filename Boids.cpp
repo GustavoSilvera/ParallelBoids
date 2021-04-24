@@ -8,10 +8,9 @@
 const int MaxWidth = 500;
 const int MaxHeight = 500;
 
-Vec2D COM;    // static centre of mass for all boids
-Vec2D AvgVel; // static centre of mass for all boids
-Vec2D Target; // flock's goal
-double t = 0; // global time of the world
+Vec2D Target;        // flock's goal
+double t = 0;        // global time of the world
+size_t NumBoids = 0; // total number of boids in the flock
 class Boid_t
 {
   public:
@@ -19,18 +18,36 @@ class Boid_t
     {
         Position = Vec2D(x0, y0); // set posixtion
         Velocity = Vec2D(0, 0);   // set initial velocity
+        Index = NumBoids;
+        NumBoids++;
     }
     Vec2D Position; // 2d vector of doubles
     Vec2D Velocity;
+    size_t Index;
     const double Size = 5.0;
-    Vec2D rule1() const
+    Vec2D rule1(const std::vector<Boid_t> &AllBoids) const
     {
         // "fly towards the centre of mass of neighbouring boids"
-        float Ferocity = 0.05; // moves 10% of the way to the COM
+        float Ferocity = 0.05;              // moves this % of the way to the COM
+        const float NeighbourhoodSize = 50; // within 50 pixels
+        Vec2D COM;
+        size_t NumNeighbours = 0;
+        for (const Boid_t &Neighbour : AllBoids)
+        {
+            if (Neighbour.Index != Index && (Neighbour.Position - Position).NormSqr() < NeighbourhoodSize)
+            {
+                COM += Neighbour.Position;
+                NumNeighbours++;
+            }
+        }
+        if (NumNeighbours > 0)
+        {
+            COM /= NumNeighbours;
+        }
         return (COM - Position) * Ferocity;
     }
 
-    Vec2D rule2(std::vector<Boid_t> &AllBoids) const
+    Vec2D rule2(const std::vector<Boid_t> &AllBoids) const
     {
         // slightly "steer away" from nearby boids to avoid collisions
         Vec2D Disp; // displacement away from neighbouring boids
@@ -46,10 +63,25 @@ class Boid_t
         return Disp;
     }
 
-    Vec2D rule3() const
+    Vec2D rule3(const std::vector<Boid_t> &AllBoids) const
     {
         // try to match velocity to the rest of the group
-        float Ferocity = 0.05; // moves 1/8th of the way to the AvgVel
+        float Ferocity = 0.05;              // moves this % of the way to the AvgVel
+        const float NeighbourhoodSize = 50; // within 50 pixels
+        Vec2D AvgVel;
+        size_t NumNeighbours = 0;
+        for (const Boid_t &Neighbour : AllBoids)
+        {
+            if (Neighbour.Index != Index && (Neighbour.Position - Position).NormSqr() < NeighbourhoodSize)
+            {
+                AvgVel += Neighbour.Velocity;
+                NumNeighbours++;
+            }
+        }
+        if (NumNeighbours > 0)
+        {
+            AvgVel /= NumNeighbours;
+        }
         return (AvgVel - Velocity) * Ferocity;
     }
 
@@ -62,9 +94,9 @@ class Boid_t
 
     void Update(std::vector<Boid_t> &AllBoids, const double dt)
     {
-        Vec2D v1 = rule1();
+        Vec2D v1 = rule1(AllBoids);
         Vec2D v2 = rule2(AllBoids);
-        Vec2D v3 = rule3();
+        Vec2D v3 = rule3(AllBoids);
         Vec2D v4 = rule4();
         // add more rules here
         Velocity = Boid_t::LimitVelocity(Velocity + v1 + v2 + v3 + v4);
@@ -100,28 +132,6 @@ class Boid_t
         return Velocity;
     }
 
-    static void ComputeCOM(std::vector<Boid_t> &AllBoids)
-    {
-        // the "centre of mass" of all the boids
-        COM = Vec2D(0, 0); // reset from last time
-        for (const Boid_t &boid : AllBoids)
-        {
-            COM += boid.Position; // accumulate all boids
-        }
-        COM /= AllBoids.size(); // divide by count
-    }
-
-    static void ComputeAvgVel(std::vector<Boid_t> &AllBoids)
-    {
-        // the "centre of mass" of all the boids
-        AvgVel = Vec2D(0, 0); // reset from last time
-        for (const Boid_t &boid : AllBoids)
-        {
-            AvgVel += boid.Velocity; // accumulate all boids
-        }
-        AvgVel /= AllBoids.size(); // divide by count
-    }
-
     static void ComputeTarget()
     {
         Target -= Vec2D(MaxWidth / 2.0, MaxHeight / 2.0);
@@ -136,8 +146,6 @@ void ComputeFrame(std::vector<Boid_t> &AllBoids, const double t, const double dt
     std::string FramePath = "Out/";
     std::string FrameTitle = "Frame" + std::to_string(t) + ".ppm";
     std::array<std::array<Colour, MaxHeight>, MaxWidth> Frame = BlankImage(MaxHeight, MaxWidth);
-    Boid_t::ComputeCOM(AllBoids);    // technically incorrect
-    Boid_t::ComputeAvgVel(AllBoids); // technically incorrect
     Boid_t::ComputeTarget();
     for (Boid_t &B : AllBoids)
     {
@@ -153,8 +161,6 @@ std::vector<Boid_t> InitBoids()
 {
     std::vector<Boid_t> AllBoids;
     const int NumBoids = 100;
-    COM = Vec2D(0, 0);
-    AvgVel = Vec2D(0, 0);
     Target = Vec2D(MaxWidth / 2.0, MaxHeight / 2.0) + Vec2D(200, 0); // middle of the screen + offset
     for (size_t i = 0; i < NumBoids; i++)
     {
