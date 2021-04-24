@@ -2,6 +2,7 @@
 #include <array>
 #include <cmath> // atan
 #include <cstdlib>
+// #include <omp>
 #include <vector>
 
 /// TODO: don't use globals
@@ -142,11 +143,13 @@ void ComputeFrame(std::vector<Boid_t> &AllBoids, const double t, const double dt
     Boid_t::ComputeCOM(AllBoids);    // technically incorrect
     Boid_t::ComputeAvgVel(AllBoids); // technically incorrect
     Boid_t::ComputeTarget();
+    // #pragma omp parallel {
     for (Boid_t &B : AllBoids)
     {
         B.Draw(Frame);
         B.Update(AllBoids, dt);
     }
+    // }
     DrawCircle(Frame, Target, 10.0, Colour(255, 0, 0));
     WritePPMImage(Frame, MaxHeight, MaxWidth, FramePath + FrameTitle);
     return;

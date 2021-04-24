@@ -2,7 +2,7 @@ TARGET = Boids
 OBJS += Boids.o
 
 CXX = clang++
-CFLAGS = -std=c++11 -Wall -Werror -pedantic -g -DNDEBUG 
+CFLAGS = -std=c++11 -Wall -Werror -pedantic -g -O3 -DNDEBUG 
 
 LDFLAGS += $(LIBS)
 
@@ -20,3 +20,4 @@ DEPS = $(OBJS:%.o=%.d)
 
 clean: 
 	rm $(TARGET) $(OBJS) $(DEPS) || true
+	rm -rf Out/ || true

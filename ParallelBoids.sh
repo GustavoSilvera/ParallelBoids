@@ -2,7 +2,8 @@
 
 # run the entire pipeline for generating a simulator movie
 
-rm -rf Out/ || true
+# don't need to remove old out directory
+# rm -rf Out/ || true
 
 make --silent
 
