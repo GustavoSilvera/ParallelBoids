@@ -1,8 +1,7 @@
 #include "Vec.hpp"
 #include <array>
-#include <cmath> // atan
 #include <cstdlib>
-// #include <omp>
+#include <omp.h>
 #include <vector>
 
 /// TODO: don't use globals
@@ -134,25 +133,33 @@ class Boid_t
     }
 };
 
-void ComputeFrame(std::vector<Boid_t> &AllBoids, const double t, const double dt)
+void RenderFrame(const std::vector<Boid_t> &AllBoids)
 {
-    /// TODO: figure out how to generate the Out/ directory
     std::string FramePath = "Out/";
-    std::string FrameTitle = "Frame" + std::to_string(t) + ".ppm";
+    std::string FrameTitle = "Boids" + std::to_string(t) + ".ppm";
     std::array<std::array<Colour, MaxHeight>, MaxWidth> Frame = BlankImage(MaxHeight, MaxWidth);
-    Boid_t::ComputeCOM(AllBoids);    // technically incorrect
-    Boid_t::ComputeAvgVel(AllBoids); // technically incorrect
-    Boid_t::ComputeTarget();
-    // #pragma omp parallel {
-    for (Boid_t &B : AllBoids)
+    // draw all the boids onto the frame
+    for (const Boid_t &B : AllBoids)
     {
         B.Draw(Frame);
+    }
+    // draw the target onto the frame
+    DrawCircle(Frame, Target, 5.0, Colour(255, 0, 0));
+    WritePPMImage(Frame, MaxHeight, MaxWidth, FramePath + FrameTitle);
+}
+
+void ComputeFrame(std::vector<Boid_t> &AllBoids, const double t, const double dt)
+{
+    Boid_t::ComputeCOM(AllBoids);
+    Boid_t::ComputeAvgVel(AllBoids);
+    Boid_t::ComputeTarget();
+    // naive per-boid iteration
+    for (Boid_t &B : AllBoids)
+    {
         B.Update(AllBoids, dt);
     }
-    // }
-    DrawCircle(Frame, Target, 10.0, Colour(255, 0, 0));
-    WritePPMImage(Frame, MaxHeight, MaxWidth, FramePath + FrameTitle);
-    return;
+    // Rendering is not part of our problem
+    RenderFrame(AllBoids);
 }
 
 std::vector<Boid_t> InitBoids()
@@ -175,7 +182,7 @@ int main()
 {
     std::srand(0); // consistent seed
 
-    double TimeBudget = 10.0;
+    double TimeBudget = 15.0;
     std::vector<Boid_t> AllBoids = InitBoids();
     const double dt = 0.05;
     while (t < TimeBudget)
