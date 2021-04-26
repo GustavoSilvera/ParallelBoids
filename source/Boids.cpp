@@ -8,20 +8,20 @@
 #include <vector>
 
 /// TODO: don't use globals
-const int NumBoids = 2000;
+const int NumBoids = 10000;
 // colours for the threads
-const int NumThreads = 2;
+const int NumThreads = 32;
 const std::vector<Colour> IDColours = {Colour(255, 0, 0),   Colour(0, 255, 0),   Colour(0, 0, 255),
                                        Colour(255, 255, 0), Colour(0, 255, 255), Colour(255, 0, 255),
                                        Colour(255, 128, 0), Colour(0, 128, 255), Colour(128, 0, 255),
                                        Colour(128, 255, 0), Colour(0, 255, 128), Colour(255, 0, 128)};
-const Vec2D ScreenDim(1000, 1000);
+const Vec2D ScreenDim(2000, 2000);
 
 double t = 0; // global time of the world
 
-const double Cohesion = 1.0;
+const double Cohesion = 0.5;
 const double Alignment = 0.5;
-const double Separation = 0;
+const double Separation = 0.5;
 
 class Boid_t
 {
@@ -166,7 +166,7 @@ double ComputeFrame(std::vector<Boid_t> &AllBoids, Image &I, const double t, con
     auto EndTime = std::chrono::system_clock::now();
     std::chrono::duration<double> ElapsedTime = EndTime - StartTime;
     // Rendering is not part of our problem
-    RenderFrame(I, AllBoids);
+    // RenderFrame(I, AllBoids);
     return ElapsedTime.count();
 }
 
@@ -187,6 +187,7 @@ std::vector<Boid_t> InitBoids()
 
 int main()
 {
+    /// TODO: Add params for rendering and window size and other vars
     std::srand(0); // consistent seed
     double TimeBudget = 10.0;
     Image I(ScreenDim[0], ScreenDim[1]);
