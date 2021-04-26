@@ -1,23 +1,4 @@
 \documentclass[12pt]{article}
-% \usepackage{fullpage}
-% \usepackage{amsmath,amsopn}
-% \usepackage{graphicx}
-% \usepackage{color}
-% \usepackage{verbatim}
-% \usepackage{setspace}
-% \usepackage{gensymb}
-% \usepackage{float}
-% \usepackage[normalem]{ulem}
-% \usepackage{hyperref}
-% %\usepackage[dvips,bookmarks=false,colorlinks,urlcolor=blue,pdftitle={
-% \usepackage{caption}
-% \usepackage{subcaption}
-% \usepackage{amsmath}
-% \usepackage{amssymb}
-% \usepackage{amsfonts}
-% \usepackage{amsthm}
-% \usepackage{comment}
-% \usepackage{xcolor}
 
 \usepackage[a4paper, total={7in, 9.5in}]{geometry}
 
@@ -37,9 +18,23 @@
 \paragraph{Group:} Elan Biswas(elanb), Gustavo Silvera(gsilvera)
 
 \section*{Current Progress:} 
+\par After further investigation of our original proposal \textit{(parallel phase-based video interpolation)} we have decided that it would be more beneficial to focus on a project that has a lower barrier-of-entry so we could start on implementation early. 
+
 \section*{Goals & Deliverables:} 
+We plan to implement 2 parallel implementations of the Boid algorithm, one utilizing the GPU via CUDA and the other utilizing multicore processing via 
+\textbf{Parallelization Schemes:}\\
+- OMP + MPI (threads go brr on multiple pc's)\\
+- CUDA + SIMD (vectorize the boids themselves)\\
+- Experiment with 
+
+\textbf{Nice to have:}\\
+- Compute frames at double the time granularity and interpolate the middle frames 
+  by averaging boid positions. Compare the time it takes to do this and measure the 
+  accuracy of the approximated frames. 
+
+
 \section*{Detailed Schedule:} 
 \section*{Preliminary Results:} 
-\section*{Main Concerns:} 
+\section*{Concerning Issues:} 
 
 \end{document}

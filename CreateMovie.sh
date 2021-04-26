@@ -13,7 +13,7 @@ echo -e "\nRendering Movie..."
 convert $(ls Out/*.png | sort -V) Out/Movie.mp4
 echo -e "...Done!"
 # clean directory
-for f in Out/*.png
-do
-    rm $f
-done
+# for f in Out/*.png
+# do
+#     rm $f
+# done
