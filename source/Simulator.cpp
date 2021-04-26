@@ -63,8 +63,17 @@ class Simulator
 #pragma omp parallel for num_threads(NumThreads)
         for (size_t i = 0; i < AllBoids.size(); i++)
         {
-            /// TODO: change to sense/plan/act mode
-            AllBoids[i].Update(AllBoids, FlockSizes, DeltaTime);
+            AllBoids[i].Sense(AllBoids);
+        }
+#pragma omp parallel for num_threads(NumThreads)
+        for (size_t i = 0; i < AllBoids.size(); i++)
+        {
+            AllBoids[i].Plan(FlockSizes);
+        }
+#pragma omp parallel for num_threads(NumThreads)
+        for (size_t i = 0; i < AllBoids.size(); i++)
+        {
+            AllBoids[i].Act(DeltaTime);
         }
 
         auto EndTime = std::chrono::system_clock::now();

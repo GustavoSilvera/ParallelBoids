@@ -3,6 +3,7 @@
 
 #include "Utils.hpp"
 #include "Vec.hpp"
+#include <omp.h>
 #include <vector>
 
 class Boid
@@ -18,74 +19,87 @@ class Boid
         WindowSize = WS;
     }
     Vec2D Position, Velocity, Acceleration;
+    Vec2D a1, a2, a3;
     size_t ProcID, FlockID, BoidID;
     const double Size = 4.0;
     Vec2D WindowSize;
-    double Cohesion = 0.5, Alignment = 1.5, Separation = 1.5;
+    const double Cohesion = 0.5, Alignment = 1.5, Separation = 1.5;
+    std::vector<Boid *> Neighbours;
 
-    void CollisionCheck(std::vector<Boid> &AllBoids)
+    void Sense(std::vector<Boid> &AllBoids)
     {
-        /// TODO: fix the tracking for high-tick timings
-        for (const Boid &Neighbour : AllBoids) // move away from any overlapping neighbours
+        // finds all the nearby neighbours
+        /// TODO: figure out something smarter than clearing, maybe share across ticks
+        Neighbours.clear();
+        const size_t Visibility = 100; // 100px radius to consider neighbours
+        for (Boid &B : AllBoids)       // have to scan all boids (TODO: do we?)
         {
-            if (Neighbour.BoidID != BoidID &&                                           // not self
-                (Neighbour.Position - Position).SizeSqr() < sqr(Size + Neighbour.Size)) // only within neighbourhood
+            if (B.BoidID != BoidID &&                                // not self
+                (B.Position - Position).SizeSqr() < sqr(Visibility)) // within this visibility
             {
-                const double OverlapAmnt = 1 - ((Neighbour.Position - Position).Size() / (Size + Neighbour.Size));
-                Position -= (Neighbour.Position - Position) * OverlapAmnt;
+                Neighbours.push_back(&B);
             }
         }
     }
 
-    void Update(std::vector<Boid> &AllBoids, std::vector<int> &FlockSizes, const double dt)
+    void Plan(std::vector<int> &FlockSizes)
     {
-        ProcID = 0;
-        Vec2D RelativeCOM, Disp, AvgVel;
-        size_t NumNeighbours = 0;
-        const size_t Visibility = 100;   // 100px radius to consider neighbours
-        for (Boid &Neighbour : AllBoids) // only one loop instead of three
+        // reset current force factors
+        a1 = Vec2D(0, 0);
+        a2 = Vec2D(0, 0);
+        a3 = Vec2D(0, 0);
+        // Makes local decisions based off the current neighbours
+        if (Neighbours.size() > 0)
         {
-            if (Neighbour.BoidID != BoidID)
+            Vec2D RelativeCOM, AvgVel, SeparationDisp;
+            for (const Boid *Neighbour : Neighbours) // exactly the neighbours we care about
             {
-                if ((Neighbour.Position - Position).SizeSqr() < sqr(Visibility)) // only within neighbourhood
+                RelativeCOM += Neighbour->Position;
+                AvgVel += Neighbour->Velocity;
+                if ((Neighbour->Position - Position).SizeSqr() < sqr(4 * Size)) // real close
                 {
-                    NumNeighbours++;                                               // increment neighbours
-                    RelativeCOM += Neighbour.Position;                             // add to COM
-                    AvgVel += Neighbour.Velocity;                                  // add to AvgVel
-                    if ((Neighbour.Position - Position).SizeSqr() < sqr(4 * Size)) // real close
-                    {
-                        Disp -= (Neighbour.Position - Position); // add to displacement
+                    SeparationDisp -= (Neighbour->Position - Position); // add to displacement
+                }
 #pragma omp critical
-                        {
-                            if (FlockSizes[FlockID] <= FlockSizes[Neighbour.FlockID])
-                            {
-                                // their flock is larger, I join them with probability based off distance
-
-                                FlockSizes[FlockID]--;
-                                FlockID = Neighbour.FlockID;
-                                FlockSizes[Neighbour.FlockID]++;
-                            }
-                        }
+                {
+                    // NOTE: or find the max flock, instead of the first one
+                    if (FlockSizes[FlockID] <= FlockSizes[Neighbour->FlockID])
+                    {
+                        // their flock is larger, I join
+                        FlockSizes[FlockID]--;
+                        FlockID = Neighbour->FlockID;
+                        FlockSizes[Neighbour->FlockID]++;
                     }
                 }
             }
+            // NumNeighbours > 0
+            a1 = ((RelativeCOM / Neighbours.size()) - Position) * Cohesion;
+            a2 = SeparationDisp * Separation;
+            a3 = ((AvgVel / Neighbours.size()) - Velocity) * Alignment;
         }
-        if (NumNeighbours > 0)
-        {
-            RelativeCOM /= NumNeighbours;
-            AvgVel /= NumNeighbours;
-        }
+    }
 
-        // compute acceleration factors
-        Vec2D a1 = (RelativeCOM - Position) * Cohesion;
-        Vec2D a2 = Disp * Separation;
-        Vec2D a3 = (AvgVel - Velocity) * Alignment;
-        // add more rules here
+    void Act(const double DeltaTime)
+    {
         Acceleration = a1 + a2 + a3; // + a4
         Velocity = Boid::LimitVelocity(Velocity + Acceleration);
-        Position += Velocity * dt;
-        CollisionCheck(AllBoids);
+        Position += Velocity * DeltaTime;
+        CollisionCheck(); // resets position to avoid collisions
         EdgeWrap();
+    }
+
+    void CollisionCheck()
+    {
+        /// TODO: fix the tracking for high-tick timings
+        for (const Boid *Neighbour : Neighbours) // move away from any overlapping neighbours
+        {
+            if (Neighbour->BoidID != BoidID &&                                            // not self
+                (Neighbour->Position - Position).SizeSqr() < sqr(Size + Neighbour->Size)) // only within neighbourhood
+            {
+                const double OverlapAmnt = 1 - ((Neighbour->Position - Position).Size() / (Size + Neighbour->Size));
+                Position -= (Neighbour->Position - Position) * OverlapAmnt;
+            }
+        }
     }
 
     void Draw(Image &I) const
@@ -106,7 +120,7 @@ class Boid
 
     static Vec2D LimitVelocity(const Vec2D &Velocity)
     {
-        const double MaxVel = 20;
+        const double MaxVel = 30;
         if (Velocity.SizeSqr() > sqr(MaxVel))
         {
             return (Velocity / Velocity.Size()) * MaxVel;
