@@ -8,9 +8,9 @@
 #include <vector>
 
 /// TODO: don't use globals
-const int NumBoids = 1000;
+const int NumBoids = 30000;
 // colours for the threads
-const int NumThreads = 2;
+const int NumThreads = 4;
 const std::vector<Colour> IDColours = {Colour(255, 0, 0),   Colour(0, 255, 0),   Colour(0, 0, 255),
                                        Colour(255, 255, 0), Colour(0, 255, 255), Colour(255, 0, 255),
                                        Colour(255, 128, 0), Colour(0, 128, 255), Colour(128, 0, 255),
@@ -35,68 +35,41 @@ class Boid_t
     Vec2D Position; // 2d vector of doubles
     Vec2D Velocity;
     Vec2D Acceleration;
-    const double Size = 10.0;
+    const double Size = 2.0;
     size_t ProcID = 0;
-    Vec2D rule1(std::vector<Boid_t> &AllBoids) const
-    {
-        // "fly towards the centre of mass of neighbouring boids"
-        Vec2D RelativeCOM;
-        size_t NumNeighbours = 0;
-        for (const Boid_t &Neighbour : AllBoids)
-        {
-            if ((Neighbour.Position - Position).NormSqr() < sqr(100))
-            {
-                // pushes away from nearby boids, displaces 0 if itself
-                RelativeCOM += Neighbour.Position;
-                NumNeighbours++;
-            }
-        }
-        RelativeCOM /= NumNeighbours;
-        return (RelativeCOM - Position);
-    }
-
-    Vec2D rule2(std::vector<Boid_t> &AllBoids) const
-    {
-        // slightly "steer away" from nearby boids to avoid collisions
-        Vec2D Disp; // displacement away from neighbouring boids
-        for (const Boid_t &Neighbour : AllBoids)
-        {
-            if ((Neighbour.Position - Position).NormSqr() < sqr(2 * Size))
-            {
-                // pushes away from nearby boids, displaces 0 if itself
-                Disp -= (Neighbour.Position - Position);
-            }
-        }
-        return Disp;
-    }
-
-    Vec2D rule3(std::vector<Boid_t> &AllBoids) const
-    {
-        // try to match velocity to the rest of the group
-        Vec2D AvgVel;
-        size_t NumNeighbours = 0;
-        for (const Boid_t &Neighbour : AllBoids)
-        {
-            if ((Neighbour.Position - Position).NormSqr() < sqr(100))
-            {
-                // pushes away from nearby boids, displaces 0 if itself
-                AvgVel += Neighbour.Velocity;
-                NumNeighbours++;
-            }
-        }
-        AvgVel /= NumNeighbours;
-        return (AvgVel - Velocity);
-    }
 
     void Update(std::vector<Boid_t> &AllBoids, const double dt, const size_t ID)
     {
         ProcID = ID;
-        Vec2D v1 = rule1(AllBoids) * Cohesion;
-        Vec2D v2 = rule2(AllBoids) * Separation;
-        Vec2D v3 = rule3(AllBoids) * Alignment;
+        Vec2D RelativeCOM, Disp, AvgVel;
+        size_t NumNeighbours = 0;
+        for (const Boid_t &Neighbour : AllBoids) // only one loop instead of three
+        {
+            if ((Neighbour.Position - Position).NormSqr() < sqr(100)) // only within neighbourhood
+            {
+                NumNeighbours++;                                               // increment neighbours
+                RelativeCOM += Neighbour.Position;                             // add to COM
+                AvgVel += Neighbour.Velocity;                                  // add to AvgVel
+                if ((Neighbour.Position - Position).NormSqr() < sqr(2 * Size)) // real close
+                {
+                    /// TODO: add some sort of collision
+                    Disp -= (Neighbour.Position - Position); // add to displacement
+                }
+            }
+        }
+        if (NumNeighbours > 0)
+        {
+            RelativeCOM /= NumNeighbours;
+            AvgVel /= NumNeighbours;
+        }
+
+        // compute acceleration factors
+        Vec2D a1 = (RelativeCOM - Position) * Cohesion;
+        Vec2D a2 = Disp * Separation;
+        Vec2D a3 = (AvgVel - Velocity) * Alignment;
         // Vec2D v4 = rule4();
         // add more rules here
-        Acceleration = v1 + v2 + v3; // + v4
+        Acceleration = a1 + a2 + a3; // + v4
         Velocity = Boid_t::LimitVelocity(Velocity + Acceleration);
         Position += Velocity * dt;
         EdgeWrap();
@@ -162,7 +135,6 @@ void RenderFrame(Image &I, const std::vector<Boid_t> &AllBoids)
         B.Draw(I);
     }
     // draw the target onto the frame
-    // I.DrawCircle(Target[0], Target[1], 5.0, Colour(255, 0, 0));
     I.ExportPPMImage();
     I.Blank();
 }
