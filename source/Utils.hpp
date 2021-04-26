@@ -2,6 +2,7 @@
 #define UTILS
 
 #include <cassert>
+#include <cmath> // pow
 #include <cstdio>
 #include <fstream>
 #include <iostream>
@@ -66,7 +67,7 @@ class Image
     size_t MaxWidth;
     size_t MaxHeight;
     std::vector<std::vector<Colour>> Data;
-
+    size_t NumExported = 0;
     void SetPixel(const size_t X, const size_t Y, const Colour C)
     {
         /// TODO: do we need to check bounds always? even with EdgeWrap?
@@ -105,10 +106,20 @@ class Image
         }
     }
 
-    void WritePPMImage(const std::string &Filename)
+    void ExportPPMImage()
     {
-        /// NOTE: requires data[i][j] to be RGB within (0, 0, 0) and (255, 255, 255)
+        const size_t NumLeading0s = 4; // max 9999 frames
+        const size_t MaxFrames = std::pow(10, NumLeading0s);
+        if (NumExported > MaxFrames)
+        {
+            std::cout << "Cannot export more than " << MaxFrames << " frames! " << std::endl;
+            return;
+        }
+        std::string Path = "Out/";
+        std::string NumStr = std::to_string(NumExported); // which frame this is
+        std::string Filename = Path + std::string(NumLeading0s - NumStr.length(), '0') + NumStr + ".ppm";
 
+        // Begin writing output stream
         std::ofstream Img(Filename, std::ios_base::out | std::ios_base::binary);
         Img << "P6" << std::endl << MaxWidth << " " << MaxHeight << std::endl << "255" << std::endl; // write ppm header
         for (size_t j = 0; j < MaxHeight; ++j)
@@ -120,6 +131,7 @@ class Image
             }
         }
         Img.close();
+        NumExported++;                                                       // exported a new file
         std::cout << "Wrote image file: " << Filename << "\r" << std::flush; // carriage return, no newline
     }
 };

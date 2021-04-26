@@ -156,8 +156,6 @@ class Boid_t
 
 void RenderFrame(Image &I, const std::vector<Boid_t> &AllBoids)
 {
-    std::string FramePath = "Out/";
-    std::string FrameTitle = "Boids" + std::to_string(t) + ".ppm";
     // draw all the boids onto the frame
     for (const Boid_t &B : AllBoids)
     {
@@ -165,7 +163,7 @@ void RenderFrame(Image &I, const std::vector<Boid_t> &AllBoids)
     }
     // draw the target onto the frame
     // I.DrawCircle(Target[0], Target[1], 5.0, Colour(255, 0, 0));
-    I.WritePPMImage(FramePath + FrameTitle);
+    I.ExportPPMImage();
     I.Blank();
 }
 
@@ -202,7 +200,7 @@ std::vector<Boid_t> InitBoids()
 int main()
 {
     std::srand(0); // consistent seed
-    double TimeBudget = 5.0;
+    double TimeBudget = 11.0;
     Image I(ScreenDim[0], ScreenDim[1]);
     std::vector<Boid_t> AllBoids = InitBoids();
     const double dt = 0.05;

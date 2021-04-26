@@ -32,7 +32,10 @@
 *.app
 Boids
 
-# images
+# Output
+Out/
+
+# Images
 *.ppm
 *.png
 *.mp4

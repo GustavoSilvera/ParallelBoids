@@ -19,5 +19,5 @@ DEPS = $(OBJS:%.o=%.d)
 -include $(DEPS)
 
 clean: 
-	rm $(TARGET) $(OBJS) $(DEPS) || true
-	rm -rf Out/ || true
+	rm $(TARGET) $(OBJS) || true
+	rm -rf Out/*.ppm || true
