@@ -7,7 +7,7 @@ set -e
 # don't need to remove old out directory
 # rm -rf Out/ || true
 
-make --silent
+make -B --silent
 
 mkdir -p Out
 

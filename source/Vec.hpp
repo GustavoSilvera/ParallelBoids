@@ -38,7 +38,7 @@ class Vec2D
         }
     }
 
-    double NormSqr() const
+    double SizeSqr() const
     {
         double sum = 0;
         for (size_t i = 0; i < 2; i++)
@@ -48,9 +48,15 @@ class Vec2D
         return sum;
     }
 
-    double Norm() const
+    double Size() const
     {
-        return std::sqrt(NormSqr());
+        return std::sqrt(SizeSqr());
+    }
+
+    Vec2D Norm() const
+    {
+        // divide by magnitude
+        return Vec2D(Data) / Size();
     }
 
     Vec2D rotate(const double angle) const

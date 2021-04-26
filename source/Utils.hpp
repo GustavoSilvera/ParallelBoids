@@ -68,7 +68,7 @@ class Image
     size_t MaxHeight;
     std::vector<std::vector<Colour>> Data;
     size_t NumExported = 0;
-    void SetPixel(const size_t X, const size_t Y, const Colour C)
+    void SetPixelW(const size_t X, const size_t Y, const Colour C)
     {
         /// TODO: do we need to check bounds always? even with EdgeWrap?
         bool WithinWidth = (0 <= X && X < MaxWidth);
@@ -79,6 +79,32 @@ class Image
         }
     }
 
+    void SetPixel(const double X, const double Y, const Colour C)
+    {
+        const double MaxW = MaxWidth - 1;
+        const double MaxH = MaxHeight - 1;
+        double ClampedX = X;
+        if (ClampedX < 0)
+        {
+            ClampedX += MaxW;
+        }
+        else if (ClampedX > MaxW)
+        {
+            ClampedX -= MaxW;
+        }
+        /// same for y's
+        double ClampedY = Y;
+        if (ClampedY < 0)
+        {
+            ClampedY += MaxH;
+        }
+        else if (ClampedY > MaxH)
+        {
+            ClampedY -= MaxH;
+        }
+        Data[ClampedX][ClampedY] = C;
+    }
+
     void Blank()
     {
         // #pragma omp parallel for
@@ -86,7 +112,14 @@ class Image
         {
             for (int j = 0; j < MaxHeight; j++)
             {
-                SetPixel(i, j, Colour(0, 0, 0));
+                if (i <= 10 || i >= MaxWidth - 10 || j <= 10 || j >= MaxHeight - 10)
+                {
+                    SetPixel(i, j, Colour(255, 255, 255));
+                }
+                else
+                {
+                    SetPixel(i, j, Colour(0, 0, 0));
+                }
             }
         }
     }
@@ -94,9 +127,9 @@ class Image
     void DrawCircle(const double X, const double Y, const size_t Radius, const Colour &C)
     {
         // render circle as body of boid
-        for (size_t pX = X - Radius; pX < X + Radius; pX++)
+        for (double pX = X - Radius; pX < X + Radius; pX++)
         {
-            for (size_t pY = Y - Radius; pY < Y + Radius; pY++)
+            for (double pY = Y - Radius; pY < Y + Radius; pY++)
             {
                 if (sqr(pX - X) + sqr(pY - Y) < sqr(Radius))
                 {
