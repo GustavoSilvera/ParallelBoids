@@ -36,7 +36,7 @@ class Simulator
     double Time, TimeBudget, DeltaTime;
     std::vector<Boid> AllBoids;
     std::vector<int> FlockSizes;
-    const bool RenderingMovie = true;
+    const bool RenderingMovie = false;
     Image I;
 
     void Simulate()
@@ -98,8 +98,8 @@ class Simulator
 int main()
 {
     /// TODO: Add params for rendering and window size and other vars
-    const size_t NumBoids = 1000;
-    const size_t NumThreads = 1;
+    const size_t NumBoids = 10000;
+    const size_t NumThreads = 16;
     const double MaxT = 8.0;
     const double DeltaT = 0.05;
     const Vec2D ScreenDim(1000, 1000);

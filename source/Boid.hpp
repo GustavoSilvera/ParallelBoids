@@ -59,16 +59,16 @@ class Boid
                 if ((Neighbour->Position - Position).SizeSqr() < sqr(4 * Size)) // real close
                 {
                     SeparationDisp -= (Neighbour->Position - Position); // add to displacement
-                }
 #pragma omp critical
-                {
-                    // NOTE: or find the max flock, instead of the first one
-                    if (FlockSizes[FlockID] <= FlockSizes[Neighbour->FlockID])
                     {
-                        // their flock is larger, I join
-                        FlockSizes[FlockID]--;
-                        FlockID = Neighbour->FlockID;
-                        FlockSizes[Neighbour->FlockID]++;
+                        // NOTE: or find the max flock, instead of the first one
+                        if (FlockSizes[FlockID] <= FlockSizes[Neighbour->FlockID])
+                        {
+                            // their flock is larger, I join
+                            FlockSizes[FlockID]--;
+                            FlockID = Neighbour->FlockID;
+                            FlockSizes[Neighbour->FlockID]++;
+                        }
                     }
                 }
             }
