@@ -10,7 +10,7 @@
 /// TODO: don't use globals
 const int NumBoids = 1000;
 // colours for the threads
-const int NumThreads = 8;
+const int NumThreads = 2;
 const std::vector<Colour> IDColours = {Colour(255, 0, 0),   Colour(0, 255, 0),   Colour(0, 0, 255),
                                        Colour(255, 255, 0), Colour(0, 255, 255), Colour(255, 0, 255),
                                        Colour(255, 128, 0), Colour(0, 128, 255), Colour(128, 0, 255),
@@ -21,7 +21,7 @@ double t = 0; // global time of the world
 
 const double Cohesion = 1.0;
 const double Alignment = 0.5;
-const double Separation = 0.1;
+const double Separation = 1.3;
 
 class Boid_t
 {
@@ -35,7 +35,7 @@ class Boid_t
     Vec2D Position; // 2d vector of doubles
     Vec2D Velocity;
     Vec2D Acceleration;
-    const double Size = 5.0;
+    const double Size = 10.0;
     size_t ProcID = 0;
     Vec2D rule1(std::vector<Boid_t> &AllBoids) const
     {
@@ -44,7 +44,7 @@ class Boid_t
         size_t NumNeighbours = 0;
         for (const Boid_t &Neighbour : AllBoids)
         {
-            if ((Neighbour.Position - Position).NormSqr() < sqr(4 * Size))
+            if ((Neighbour.Position - Position).NormSqr() < sqr(100))
             {
                 // pushes away from nearby boids, displaces 0 if itself
                 RelativeCOM += Neighbour.Position;
@@ -61,7 +61,7 @@ class Boid_t
         Vec2D Disp; // displacement away from neighbouring boids
         for (const Boid_t &Neighbour : AllBoids)
         {
-            if ((Neighbour.Position - Position).NormSqr() < sqr(4 * Size))
+            if ((Neighbour.Position - Position).NormSqr() < sqr(2 * Size))
             {
                 // pushes away from nearby boids, displaces 0 if itself
                 Disp -= (Neighbour.Position - Position);
@@ -77,7 +77,7 @@ class Boid_t
         size_t NumNeighbours = 0;
         for (const Boid_t &Neighbour : AllBoids)
         {
-            if ((Neighbour.Position - Position).NormSqr() < sqr(4 * Size))
+            if ((Neighbour.Position - Position).NormSqr() < sqr(100))
             {
                 // pushes away from nearby boids, displaces 0 if itself
                 AvgVel += Neighbour.Velocity;
@@ -99,6 +99,7 @@ class Boid_t
         Acceleration = v1 + v2 + v3; // + v4
         Velocity = Boid_t::LimitVelocity(Velocity + Acceleration);
         Position += Velocity * dt;
+        EdgeWrap();
     }
 
     void Draw(Image &I) const
@@ -125,14 +126,39 @@ class Boid_t
         }
         return Velocity;
     }
+
+    void EdgeWrap()
+    {
+        const size_t MaxW = ScreenDim[0] - 1;
+        const size_t MaxH = ScreenDim[1] - 1;
+        double ClampedX = Position[0];
+        if (ClampedX < 0)
+        {
+            ClampedX = MaxW;
+        }
+        else if (ClampedX > MaxW)
+        {
+            ClampedX = 0;
+        }
+        /// same for y's
+        double ClampedY = Position[1];
+        if (ClampedY < 0)
+        {
+            ClampedY = MaxH;
+        }
+        else if (ClampedY > MaxH)
+        {
+            ClampedY = 0;
+        }
+        Position = Vec2D(ClampedX, ClampedY);
+    }
 };
 
 void RenderFrame(Image &I, const std::vector<Boid_t> &AllBoids)
 {
     std::string FramePath = "Out/";
     std::string FrameTitle = "Boids" + std::to_string(t) + ".ppm";
-// draw all the boids onto the frame
-#pragma omp parallel for
+    // draw all the boids onto the frame
     for (const Boid_t &B : AllBoids)
     {
         B.Draw(I);

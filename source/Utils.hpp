@@ -69,6 +69,7 @@ class Image
 
     void SetPixel(const size_t X, const size_t Y, const Colour C)
     {
+        /// TODO: do we need to check bounds always? even with EdgeWrap?
         bool WithinWidth = (0 <= X && X < MaxWidth);
         bool WithinHeight = (0 <= Y && Y < MaxHeight);
         if (WithinWidth && WithinHeight) // draw boid within bound (triangle)
@@ -79,7 +80,7 @@ class Image
 
     void Blank()
     {
-#pragma omp parallel for
+        // #pragma omp parallel for
         for (int i = 0; i < MaxWidth; i++)
         {
             for (int j = 0; j < MaxHeight; j++)
@@ -89,21 +90,16 @@ class Image
         }
     }
 
-    void DrawCircle(const size_t X, const size_t Y, const size_t Radius, const Colour &C)
+    void DrawCircle(const double X, const double Y, const size_t Radius, const Colour &C)
     {
         // render circle as body of boid
         for (size_t pX = X - Radius; pX < X + Radius; pX++)
         {
             for (size_t pY = Y - Radius; pY < Y + Radius; pY++)
             {
-                bool WithinWidth = (0 <= pX && pX < MaxWidth);
-                bool WithinHeight = (0 <= pY && pY < MaxHeight);
                 if (sqr(pX - X) + sqr(pY - Y) < sqr(Radius))
                 {
-                    if (WithinWidth && WithinHeight) // draw boid within bound (triangle)
-                    {
-                        SetPixel(pX, pY, C);
-                    }
+                    SetPixel(pX, pY, C);
                 }
             }
         }
