@@ -10,17 +10,19 @@
 /// TODO: don't use globals
 const int NumBoids = 1000;
 // colours for the threads
-const int NumThreads = 16;
+const int NumThreads = 8;
 const std::vector<Colour> IDColours = {Colour(255, 0, 0),   Colour(0, 255, 0),   Colour(0, 0, 255),
                                        Colour(255, 255, 0), Colour(0, 255, 255), Colour(255, 0, 255),
                                        Colour(255, 128, 0), Colour(0, 128, 255), Colour(128, 0, 255),
                                        Colour(128, 255, 0), Colour(0, 255, 128), Colour(255, 0, 128)};
-const Vec2D ScreenDim(500, 1000);
+const Vec2D ScreenDim(1000, 1000);
 
-Vec2D COM;    // static centre of mass for all boids
-Vec2D AvgVel; // static centre of mass for all boids
-Vec2D Target; // flock's goal
 double t = 0; // global time of the world
+
+const double Cohesion = 1.0;
+const double Alignment = 0.5;
+const double Separation = 0.1;
+
 class Boid_t
 {
   public:
@@ -28,59 +30,74 @@ class Boid_t
     {
         Position = Vec2D(x0, y0); // set posixtion
         Velocity = Vec2D(0, 0);   // set initial velocity
+        Acceleration = 0;
     }
     Vec2D Position; // 2d vector of doubles
     Vec2D Velocity;
+    Vec2D Acceleration;
     const double Size = 5.0;
     size_t ProcID = 0;
-    Vec2D rule1() const
+    Vec2D rule1(std::vector<Boid_t> &AllBoids) const
     {
         // "fly towards the centre of mass of neighbouring boids"
-        float Ferocity = 0.05; // moves 10% of the way to the COM
-        Vec2D RelativeCOM = ((COM * NumBoids) - Position) / (NumBoids - 1);
-        return (RelativeCOM - Position) * Ferocity;
+        Vec2D RelativeCOM;
+        size_t NumNeighbours = 0;
+        for (const Boid_t &Neighbour : AllBoids)
+        {
+            if ((Neighbour.Position - Position).NormSqr() < sqr(4 * Size))
+            {
+                // pushes away from nearby boids, displaces 0 if itself
+                RelativeCOM += Neighbour.Position;
+                NumNeighbours++;
+            }
+        }
+        RelativeCOM /= NumNeighbours;
+        return (RelativeCOM - Position);
     }
 
     Vec2D rule2(std::vector<Boid_t> &AllBoids) const
     {
         // slightly "steer away" from nearby boids to avoid collisions
         Vec2D Disp; // displacement away from neighbouring boids
-        const float AvoidFerocity = 1.55;
         for (const Boid_t &Neighbour : AllBoids)
         {
-            if ((Neighbour.Position - Position).NormSqr() < sqr(2 * Size))
+            if ((Neighbour.Position - Position).NormSqr() < sqr(4 * Size))
             {
                 // pushes away from nearby boids, displaces 0 if itself
-                Disp -= (Neighbour.Position - Position) * AvoidFerocity;
+                Disp -= (Neighbour.Position - Position);
             }
         }
         return Disp;
     }
 
-    Vec2D rule3() const
+    Vec2D rule3(std::vector<Boid_t> &AllBoids) const
     {
         // try to match velocity to the rest of the group
-        float Ferocity = 0.05; // moves 1/8th of the way to the AvgVel
-        Vec2D RelativeAvgVel = ((AvgVel * NumBoids) - Velocity) / (NumBoids - 1);
-        return (RelativeAvgVel - Velocity) * Ferocity;
-    }
-
-    Vec2D rule4() const
-    {
-        // move the flock's goal to some target position
-        const double Ferocity = 0.15; // of which to go to this position
-        return (Target - Position) * Ferocity;
+        Vec2D AvgVel;
+        size_t NumNeighbours = 0;
+        for (const Boid_t &Neighbour : AllBoids)
+        {
+            if ((Neighbour.Position - Position).NormSqr() < sqr(4 * Size))
+            {
+                // pushes away from nearby boids, displaces 0 if itself
+                AvgVel += Neighbour.Velocity;
+                NumNeighbours++;
+            }
+        }
+        AvgVel /= NumNeighbours;
+        return (AvgVel - Velocity);
     }
 
     void Update(std::vector<Boid_t> &AllBoids, const double dt, const size_t ID)
     {
         ProcID = ID;
-        Vec2D v1 = rule1();
-        Vec2D v2 = rule2(AllBoids);
-        Vec2D v3 = rule3();
+        Vec2D v1 = rule1(AllBoids) * Cohesion;
+        Vec2D v2 = rule2(AllBoids) * Separation;
+        Vec2D v3 = rule3(AllBoids) * Alignment;
         // Vec2D v4 = rule4();
         // add more rules here
-        Velocity = Boid_t::LimitVelocity(Velocity + v1 + v2 + v3); // + v4
+        Acceleration = v1 + v2 + v3; // + v4
+        Velocity = Boid_t::LimitVelocity(Velocity + Acceleration);
         Position += Velocity * dt;
     }
 
@@ -88,7 +105,7 @@ class Boid_t
     {
         const Colour C = IDColours[ProcID % IDColours.size()];
         I.DrawCircle(Position[0], Position[1], Size, C);
-        /// TODO: make a "DrawLine" functoin
+        /// TODO: make a "DrawLine" function
         // also render line to indicate direction
         const size_t LineWidth = 2 * Size; // number pixels
         Vec2D HeadingVec = Velocity / Velocity.Norm();
@@ -108,35 +125,6 @@ class Boid_t
         }
         return Velocity;
     }
-
-    static void ComputeCOM(std::vector<Boid_t> &AllBoids)
-    {
-        // the "centre of mass" of all the boids
-        COM = Vec2D(0, 0); // reset from last time
-        for (const Boid_t &boid : AllBoids)
-        {
-            COM += boid.Position; // accumulate all boids
-        }
-        COM /= AllBoids.size(); // divide by count
-    }
-
-    static void ComputeAvgVel(std::vector<Boid_t> &AllBoids)
-    {
-        // the "centre of mass" of all the boids
-        AvgVel = Vec2D(0, 0); // reset from last time
-        for (const Boid_t &boid : AllBoids)
-        {
-            AvgVel += boid.Velocity; // accumulate all boids
-        }
-        AvgVel /= AllBoids.size(); // divide by count
-    }
-
-    static void ComputeTarget(const double DeltaTime)
-    {
-        Target -= Vec2D(ScreenDim[0] / 2.0, ScreenDim[1] / 2.0);
-        Target = Target.rotate(DeltaTime); // how much rotation
-        Target += Vec2D(ScreenDim[0] / 2.0, ScreenDim[1] / 2.0);
-    }
 };
 
 void RenderFrame(Image &I, const std::vector<Boid_t> &AllBoids)
@@ -150,7 +138,7 @@ void RenderFrame(Image &I, const std::vector<Boid_t> &AllBoids)
         B.Draw(I);
     }
     // draw the target onto the frame
-    I.DrawCircle(Target[0], Target[1], 5.0, Colour(255, 0, 0));
+    // I.DrawCircle(Target[0], Target[1], 5.0, Colour(255, 0, 0));
     I.WritePPMImage(FramePath + FrameTitle);
     I.Blank();
 }
@@ -158,9 +146,6 @@ void RenderFrame(Image &I, const std::vector<Boid_t> &AllBoids)
 double ComputeFrame(std::vector<Boid_t> &AllBoids, Image &I, const double t, const double dt)
 {
     auto StartTime = std::chrono::system_clock::now();
-    Boid_t::ComputeCOM(AllBoids);
-    Boid_t::ComputeAvgVel(AllBoids);
-    Boid_t::ComputeTarget(dt / 10);
     // naive per-boid iteration
 #pragma omp parallel for num_threads(NumThreads)
     for (Boid_t &B : AllBoids)
@@ -178,9 +163,6 @@ double ComputeFrame(std::vector<Boid_t> &AllBoids, Image &I, const double t, con
 std::vector<Boid_t> InitBoids()
 {
     std::vector<Boid_t> AllBoids;
-    COM = Vec2D(0, 0);
-    AvgVel = Vec2D(0, 0);
-    Target = Vec2D(ScreenDim[0] / 2.0, ScreenDim[1] / 2.0) + Vec2D(200, 0); // middle of the screen + offset
     for (size_t i = 0; i < NumBoids; i++)
     {
         int x0 = std::rand() % int(ScreenDim[0]);
