@@ -85,7 +85,9 @@ if __name__ == '__main__':
     # laptop data
     v0 = data([39.9838, 20.5884, 10.403, 5.3584, 4.2503, 3.546, 5.2531],
               "Parallel Boids", "goosinator")
+    v1 = data([],
+              "Parallel Flocks", "goosinator")
 
-    views = [v0]
+    views = [v0, v1]
     for v in views:
         plot_graph(v)

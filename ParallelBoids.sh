@@ -11,7 +11,7 @@ make -B --silent
 
 mkdir -p Out
 
-./Boids
+./Simulator
 
 ./CreateMovie.sh
 

@@ -41,10 +41,16 @@ class Colour
         return Colour(R * 255.0, G * 255.0, B * 255.0);
     }
 };
-
+// A list of common colours
+const std::vector<Colour> IDColours = {Colour(255, 0, 0),   Colour(0, 255, 0),   Colour(0, 0, 255),
+                                       Colour(255, 255, 0), Colour(0, 255, 255), Colour(255, 0, 255),
+                                       Colour(255, 128, 0), Colour(0, 128, 255), Colour(128, 0, 255),
+                                       Colour(128, 255, 0), Colour(0, 255, 128), Colour(255, 0, 128)};
 class Image
 {
   public:
+    Image() = default;
+
     Image(const size_t W, const size_t H)
     {
         MaxWidth = W;
@@ -55,13 +61,16 @@ class Image
             std::vector<Colour> Row;
             for (size_t j = 0; j < H; j++)
             {
-                Row.push_back(Colour(0, 0, 0));
+                Row.push_back(Colour(0, 0, 0)); // all black
             }
             Data.push_back(Row);
         }
         assert(Data.size() == W && Data[0].size == H);
-        // clear the data, all black
-        Blank();
+    }
+
+    Image Init(const size_t W, const size_t H)
+    {
+        return Image(W, H); // initialize all data and clear blank
     }
 
     size_t MaxWidth;
