@@ -8,10 +8,10 @@
 #include <vector>
 
 /// TODO: don't use globals
-const int NumBoids = 30000;
+const int NumBoids = 3000;
 // colours for the threads
-const int NumThreads = 4;
-const std::vector<Colour> IDColours = {Colour(255, 0, 0),   Colour(0, 255, 0),   Colour(0, 0, 255),
+const int NumThreads = 12;
+const std::vector<Colour> IDColours = {Colour(255, 0, 0), Colour(0, 255, 0), Colour(0, 0, 255),
                                        Colour(255, 255, 0), Colour(0, 255, 255), Colour(255, 0, 255),
                                        Colour(255, 128, 0), Colour(0, 128, 255), Colour(128, 0, 255),
                                        Colour(128, 255, 0), Colour(0, 255, 128), Colour(255, 0, 128)};
@@ -25,7 +25,7 @@ const double Separation = 1.3;
 
 class Boid_t
 {
-  public:
+public:
     Boid_t(int x0, int y0)
     {
         Position = Vec2D(x0, y0); // set posixtion
@@ -144,10 +144,10 @@ double ComputeFrame(std::vector<Boid_t> &AllBoids, Image &I, const double t, con
     auto StartTime = std::chrono::system_clock::now();
     // naive per-boid iteration
 #pragma omp parallel for num_threads(NumThreads)
-    for (Boid_t &B : AllBoids)
+    for (size_t i = 0; i < AllBoids.size(); i++)
     {
         const size_t ProcID = omp_get_thread_num();
-        B.Update(AllBoids, dt, ProcID);
+        AllBoids[i].Update(AllBoids, dt, ProcID);
     }
     auto EndTime = std::chrono::system_clock::now();
     std::chrono::duration<double> ElapsedTime = EndTime - StartTime;
@@ -177,12 +177,13 @@ int main()
     std::vector<Boid_t> AllBoids = InitBoids();
     const double dt = 0.05;
     double ElapsedTime = 0;
-    while (t < TimeBudget)
+    while (t <= TimeBudget)
     {
         ElapsedTime += ComputeFrame(AllBoids, I, t, dt);
         t += dt;
     }
-    std::cout << std::endl << "Finished simulation! Took " << ElapsedTime << "s" << std::endl;
+    std::cout << std::endl
+              << "Finished simulation! Took " << ElapsedTime << "s" << std::endl;
     return 0;
 }
 

@@ -35,6 +35,9 @@ Boids
 # Output
 Out/
 
+# Extras
+.vscode/
+
 # Images
 *.ppm
 *.png
