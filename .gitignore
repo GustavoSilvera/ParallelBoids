@@ -34,6 +34,9 @@ Simulator
 
 # Output
 Out/
+*.aux
+*.out
+*.log
 
 # Extras
 .vscode/
