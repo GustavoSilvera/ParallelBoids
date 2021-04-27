@@ -20,16 +20,19 @@ class Boid
     }
     Vec2D Position, Velocity, Acceleration;
     Vec2D a1, a2, a3;
-    size_t ProcID, FlockID, BoidID;
+    size_t FlockID, BoidID;
+    int SenseTid = 0, PlanTid = 0, ActTid = 0;
+
     const double Size = 4.0;
     Vec2D WindowSize;
     const double Cohesion = 0.5, Alignment = 1.5, Separation = 1.5;
     std::vector<Boid *> Neighbours;
 
-    void Sense(std::vector<Boid> &AllBoids)
+    void Sense(std::vector<Boid> &AllBoids, const int tID)
     {
         // finds all the nearby neighbours
         /// TODO: figure out something smarter than clearing, maybe share across ticks
+        SenseTid = tID;
         Neighbours.clear();
         const size_t Visibility = 100; // 100px radius to consider neighbours
         for (Boid &B : AllBoids)       // have to scan all boids (TODO: do we?)
@@ -42,12 +45,13 @@ class Boid
         }
     }
 
-    void Plan(std::vector<int> &FlockSizes)
+    void Plan(std::vector<int> &FlockSizes, const int tID)
     {
         // reset current force factors
         a1 = Vec2D(0, 0);
         a2 = Vec2D(0, 0);
         a3 = Vec2D(0, 0);
+        PlanTid = tID;
         // Makes local decisions based off the current neighbours
         if (Neighbours.size() > 0)
         {
@@ -79,8 +83,9 @@ class Boid
         }
     }
 
-    void Act(const double DeltaTime)
+    void Act(const double DeltaTime, const int tID)
     {
+        ActTid = tID;
         Acceleration = a1 + a2 + a3; // + a4
         Velocity = Boid::LimitVelocity(Velocity + Acceleration);
         Position += Velocity * DeltaTime;
@@ -104,7 +109,11 @@ class Boid
 
     void Draw(Image &I) const
     {
-        // const Colour C = IDColours[ProcID % IDColours.size()];
+        // Colour C(255, 255, 255);
+        // if (SenseTid == PlanTid && PlanTid == ActTid)
+        // {
+        //     C = IDColours[ActTid % IDColours.size()];
+        // }
         const Colour C = IDColours[FlockID % IDColours.size()];
         I.DrawCircle(Position[0], Position[1], Size, C);
         /// TODO: make a "DrawLine" function

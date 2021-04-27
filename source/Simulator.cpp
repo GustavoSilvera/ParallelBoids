@@ -36,7 +36,7 @@ class Simulator
     double Time, TimeBudget, DeltaTime;
     std::vector<Boid> AllBoids;
     std::vector<int> FlockSizes;
-    const bool RenderingMovie = false;
+    const bool RenderingMovie = true;
     Image I;
 
     void Simulate()
@@ -60,20 +60,20 @@ class Simulator
         // Run our actual problem (boid computation)
         auto StartTime = std::chrono::system_clock::now();
 
-#pragma omp parallel for num_threads(NumThreads)
+#pragma omp parallel for num_threads(NumThreads) schedule(static)
         for (size_t i = 0; i < AllBoids.size(); i++)
         {
-            AllBoids[i].Sense(AllBoids);
+            AllBoids[i].Sense(AllBoids, omp_get_thread_num());
         }
-#pragma omp parallel for num_threads(NumThreads)
+#pragma omp parallel for num_threads(NumThreads) schedule(static)
         for (size_t i = 0; i < AllBoids.size(); i++)
         {
-            AllBoids[i].Plan(FlockSizes);
+            AllBoids[i].Plan(FlockSizes, omp_get_thread_num());
         }
-#pragma omp parallel for num_threads(NumThreads)
+#pragma omp parallel for num_threads(NumThreads) schedule(static)
         for (size_t i = 0; i < AllBoids.size(); i++)
         {
-            AllBoids[i].Act(DeltaTime);
+            AllBoids[i].Act(DeltaTime, omp_get_thread_num());
         }
 
         auto EndTime = std::chrono::system_clock::now();
@@ -98,8 +98,8 @@ class Simulator
 int main()
 {
     /// TODO: Add params for rendering and window size and other vars
-    const size_t NumBoids = 10000;
-    const size_t NumThreads = 16;
+    const size_t NumBoids = 1000;
+    const size_t NumThreads = 4;
     const double MaxT = 8.0;
     const double DeltaT = 0.05;
     const Vec2D ScreenDim(1000, 1000);

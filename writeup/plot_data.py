@@ -85,7 +85,7 @@ if __name__ == '__main__':
     # laptop data
     v0 = data([39.9838, 20.5884, 10.403, 5.3584, 4.2503, 3.546, 5.2531],
               "Parallel Boids", "goosinator")
-    v1 = data([],
+    v1 = data([35.213, 19.553, 12.738, 8.449, 7.745, 10.243, 17.2952],
               "Parallel Flocks", "goosinator")
 
     views = [v0, v1]
