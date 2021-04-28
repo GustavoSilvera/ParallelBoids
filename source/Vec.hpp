@@ -6,6 +6,7 @@
 #include <cmath>
 
 /// TODO: use template magic
+#define VN 2
 class Vec2D
 {
   public:
@@ -22,16 +23,16 @@ class Vec2D
 
     Vec2D(const double init)
     {
-        for (size_t i = 0; i < 2; i++)
+        for (size_t i = 0; i < VN; i++)
         {
             // allocate data
             Data[i] = init;
         }
     }
 
-    Vec2D(const std::array<double, 2> &Copy) // duplicate vector
+    Vec2D(const std::array<double, VN> &Copy) // duplicate vector
     {
-        for (size_t i = 0; i < 2; i++)
+        for (size_t i = 0; i < VN; i++)
         {
             // Copy data over
             Data[i] = Copy[i];
@@ -41,7 +42,7 @@ class Vec2D
     double SizeSqr() const
     {
         double sum = 0;
-        for (size_t i = 0; i < 2; i++)
+        for (size_t i = 0; i < VN; i++)
         {
             sum += sqr(Data[i]);
         }
@@ -71,7 +72,7 @@ class Vec2D
     Vec2D operator+(const Vec2D &Other) const
     {
         Vec2D Ret(Data);
-        for (size_t i = 0; i < 2; i++)
+        for (size_t i = 0; i < VN; i++)
         {
             Ret.Data[i] += Other.Data[i];
         }
@@ -81,7 +82,7 @@ class Vec2D
     Vec2D operator-(const Vec2D &Other) const
     {
         Vec2D Ret(Data);
-        for (size_t i = 0; i < 2; i++)
+        for (size_t i = 0; i < VN; i++)
         {
             Ret.Data[i] -= Other.Data[i];
         }
@@ -91,7 +92,7 @@ class Vec2D
     Vec2D operator/(const double Denom) const
     {
         Vec2D Ret(Data);
-        for (size_t i = 0; i < 2; i++)
+        for (size_t i = 0; i < VN; i++)
         {
             Ret.Data[i] /= Denom;
         }
@@ -102,7 +103,7 @@ class Vec2D
     Vec2D operator*(const double Scale) const
     {
         Vec2D Ret(Data);
-        for (size_t i = 0; i < 2; i++)
+        for (size_t i = 0; i < VN; i++)
         {
             Ret.Data[i] *= Scale;
         }
@@ -112,7 +113,7 @@ class Vec2D
     //////////// :ASSIGNMENT: //////////////
     void operator+=(const Vec2D &Other)
     {
-        for (size_t i = 0; i < 2; i++)
+        for (size_t i = 0; i < VN; i++)
         {
             Data[i] += Other.Data[i];
         }
@@ -120,7 +121,7 @@ class Vec2D
 
     void operator-=(const Vec2D &Other)
     {
-        for (size_t i = 0; i < 2; i++)
+        for (size_t i = 0; i < VN; i++)
         {
             Data[i] -= Other.Data[i];
         }
@@ -128,7 +129,7 @@ class Vec2D
 
     void operator/=(const double Denom)
     {
-        for (size_t i = 0; i < 2; i++)
+        for (size_t i = 0; i < VN; i++)
         {
             Data[i] /= Denom;
         }
@@ -136,7 +137,7 @@ class Vec2D
 
     void operator*=(const double Scale)
     {
-        for (size_t i = 0; i < 2; i++)
+        for (size_t i = 0; i < VN; i++)
         {
             Data[i] *= Scale;
         }
@@ -144,7 +145,7 @@ class Vec2D
 
     void operator=(const Vec2D &Other)
     {
-        for (size_t i = 0; i < 2; i++)
+        for (size_t i = 0; i < VN; i++)
         {
             // ensures elements are present
             Data[i] = Other[i];
@@ -158,7 +159,7 @@ class Vec2D
     }
 
     // Easiest if Data is public
-    std::array<double, 2> Data; /// TODO: template the size
+    std::array<double, VN> Data; /// TODO: template the size
 };
 
 #endif

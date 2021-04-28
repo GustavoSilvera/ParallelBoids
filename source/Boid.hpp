@@ -1,6 +1,7 @@
 #ifndef BOID
 #define BOID
 
+#include "Image.hpp"
 #include "Utils.hpp"
 #include "Vec.hpp"
 #include <omp.h>
@@ -115,16 +116,12 @@ class Boid
         //     C = IDColours[ActTid % IDColours.size()];
         // }
         const Colour C = IDColours[FlockID % IDColours.size()];
-        I.DrawCircle(Position[0], Position[1], Size, C);
-        /// TODO: make a "DrawLine" function
+        I.DrawSolidCircle(Position, Size, C);
         // also render line to indicate direction
         const size_t LineWidth = 2 * Size; // number pixels
         Vec2D Heading = Velocity.Norm();
-        for (size_t i = 0; i < LineWidth; i++)
-        {
-            Vec2D Pixel = Position + Heading * i;
-            I.SetPixel(Pixel[0], Pixel[1], C);
-        }
+        Vec2D End = Position + Heading * LineWidth;
+        I.DrawLine(Position, End, C);
     }
 
     static Vec2D LimitVelocity(const Vec2D &Velocity)
