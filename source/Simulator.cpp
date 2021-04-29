@@ -1,48 +1,49 @@
-#include "Boid.hpp"
-#include "Utils.hpp"
-#include "Vec.hpp"
-#include <array>
-#include <chrono>
-#include <cstdlib>
-#include <omp.h>
-#include <string>
-#include <vector>
+#include "Boid.hpp"  // Boids
+#include "Utils.hpp" // Params
+#include "Vec.hpp"   // Vec3D
+#include <chrono>    // timing threads
+#include <cstdlib>   //
+#include <omp.h>     // OpenMP
+#include <string>    // cout
+#include <vector>    // std::vector
 
 class Simulator
 {
   public:
-    Simulator(const size_t N, const size_t P, const double TB, const double DT, const Vec2D &WindowSize)
+    Simulator()
     {
-        NumBoids = N;
-        NumThreads = P;
-        DeltaTime = DT;
-        Time = 0;
-        for (size_t i = 0; i < N; i++)
+        Params = GlobalParams.SimulatorParams;
+        for (size_t i = 0; i < Params.NumBoids; i++)
         {
-            const double x0 = std::rand() % int(WindowSize[0]);
-            const double y0 = std::rand() % int(WindowSize[1]);
-            const double dx0 = std::rand() % int(WindowSize[0]);
-            const double dy0 = std::rand() % int(WindowSize[1]);
-            Boid NewBoid(x0, y0, dx0, dy0, i, i, WindowSize);
+            const double x0 = RandD(0, GlobalParams.ImageParams.WindowX, 3);
+            const double y0 = RandD(0, GlobalParams.ImageParams.WindowY, 3);
+            const double dx0 = RandD(0, GlobalParams.ImageParams.WindowX, 3);
+            const double dy0 = RandD(0, GlobalParams.ImageParams.WindowY, 3);
+            Boid NewBoid(x0, y0, dx0, dy0, i, i);
             AllBoids.push_back(NewBoid);
             FlockSizes.push_back(1); // every flock is of size 1
         }
-        // set maximum time for simulator
-        TimeBudget = TB;
+        // Print out status
+        std::cout << "Running on " << Params.NumBoids << " boids for " << Params.NumIterations << " iterations in a ("
+                  << GlobalParams.ImageParams.WindowX << ", " << GlobalParams.ImageParams.WindowY << ") world with "
+                  << Params.NumThreads << " threads" << std::endl;
+
         // initialize image frame
-        I = I.Init(WindowSize[0], WindowSize[1]);
+        if (Params.RenderingMovie)
+        {
+            // only allocate memory if we're gonna use it
+            I.Init();
+        }
     }
-    size_t NumBoids, NumThreads;
-    double Time, TimeBudget, DeltaTime;
+    SimulatorParamsStruct Params;
     std::vector<Boid> AllBoids;
     std::vector<int> FlockSizes;
-    const bool RenderingMovie = true;
     Image I;
 
     void Simulate()
     {
         double ElapsedTime = 0;
-        while (Time <= TimeBudget)
+        for (size_t i = 0; i < Params.NumIterations; i++)
         {
             ElapsedTime += Tick();
         }
@@ -51,7 +52,7 @@ class Simulator
 
     double Tick()
     {
-        if (RenderingMovie)
+        if (Params.RenderingMovie)
         {
             // Rendering is not part of our problem
             Render();
@@ -60,25 +61,24 @@ class Simulator
         // Run our actual problem (boid computation)
         auto StartTime = std::chrono::system_clock::now();
 
-#pragma omp parallel for num_threads(NumThreads) schedule(static)
-        for (size_t i = 0; i < AllBoids.size(); i++)
+#pragma omp parallel for num_threads(Params.NumThreads) schedule(static)
+        for (size_t i = 0; i < Params.NumBoids; i++)
         {
             AllBoids[i].Sense(AllBoids, omp_get_thread_num());
         }
-#pragma omp parallel for num_threads(NumThreads) schedule(static)
-        for (size_t i = 0; i < AllBoids.size(); i++)
+#pragma omp parallel for num_threads(Params.NumThreads) schedule(static)
+        for (size_t i = 0; i < Params.NumBoids; i++)
         {
             AllBoids[i].Plan(FlockSizes, omp_get_thread_num());
         }
-#pragma omp parallel for num_threads(NumThreads) schedule(static)
-        for (size_t i = 0; i < AllBoids.size(); i++)
+#pragma omp parallel for num_threads(Params.NumThreads) schedule(static)
+        for (size_t i = 0; i < Params.NumBoids; i++)
         {
-            AllBoids[i].Act(DeltaTime, omp_get_thread_num());
+            AllBoids[i].Act(Params.DeltaTime, omp_get_thread_num());
         }
 
         auto EndTime = std::chrono::system_clock::now();
         std::chrono::duration<double> ElapsedTime = EndTime - StartTime;
-        Time += DeltaTime;          // update simulator time
         return ElapsedTime.count(); // return wall clock time diff
     }
 
@@ -97,15 +97,9 @@ class Simulator
 
 int main()
 {
-    /// TODO: Add params for rendering and window size and other vars
-    const size_t NumBoids = 1000;
-    const size_t NumThreads = 4;
-    const double MaxT = 8.0;
-    const double DeltaT = 0.05;
-    const Vec2D ScreenDim(1000, 1000);
-
     std::srand(0); // consistent seed
-    Simulator Sim(NumBoids, NumThreads, MaxT, DeltaT, ScreenDim);
+    ParseParams("params/params.ini");
+    Simulator Sim;
     Sim.Simulate();
     return 0;
 }

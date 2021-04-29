@@ -159,6 +159,14 @@ class Vec2D
         return Data[i];
     }
 
+    Vec2D LimitMagnitude(const double MaxVec)
+    {
+        if (SizeSqr() > sqr(MaxVec))
+        {
+            return Norm() * MaxVec;
+        }
+        return (*this);
+    }
     // Easiest if Data is public
     std::array<double, VN> Data; /// TODO: template the size
 };

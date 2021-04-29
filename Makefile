@@ -2,7 +2,7 @@ TARGET = Simulator
 OBJS += Simulator.o
 
 CXX = clang++
-CFLAGS = -std=c++11 -Wall -Werror -pedantic -pthread -fopenmp -g -O3 -DNDEBUG 
+CFLAGS = -std=c++11 -Wall -Werror -pedantic -pthread -fopenmp -g -DNDEBUG 
 SOURCE = source
 LDFLAGS += $(LIBS)
 
