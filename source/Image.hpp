@@ -2,7 +2,6 @@
 #define IMAGE_H
 
 #include "Vec.hpp"
-#include <cassert>
 #include <cmath> // pow
 #include <fstream>
 #include <iostream>
@@ -21,9 +20,7 @@ class Colour
     {
         Colour(0, 0, 0);
     }
-    double R;
-    double G;
-    double B;
+    double R, G, B;
 
     Colour Norm0_1() const
     {
@@ -45,58 +42,51 @@ const std::vector<Colour> IDColours = {Colour(255, 0, 0),   Colour(0, 255, 0),  
 class Image
 {
   public:
-    Image() = default;
-
-    Image(const size_t W, const size_t H)
+    Image()
     {
-        MaxWidth = W;
-        MaxHeight = H;
+        Params = GlobalParams.ImageParams;
+    }
+
+    void Init()
+    {
         // Initialize all the data
-        for (size_t i = 0; i < W; i++)
+        for (size_t i = 0; i < Params.WindowX; i++)
         {
             std::vector<Colour> Row;
-            for (size_t j = 0; j < H; j++)
+            for (size_t j = 0; j < Params.WindowY; j++)
             {
                 Row.push_back(Colour(0, 0, 0)); // all black
             }
             Data.push_back(Row);
         }
-        assert(Data.size() == W && Data[0].size == H);
     }
 
-    Image Init(const size_t W, const size_t H)
-    {
-        return Image(W, H); // initialize all data and clear blank
-    }
-
-    Image Init(const Vec2D Dims)
-    {
-        return Init(Dims[0], Dims[1]); // initialize all data and clear blank
-    }
-
-    size_t MaxWidth;
-    size_t MaxHeight;
+    ImageParamsStruct Params;
     std::vector<std::vector<Colour>> Data;
     size_t NumExported = 0;
-    void SetPixel(const size_t X, const size_t Y, const Colour C)
+    size_t NumLeading0s = 4; // max 9999 frames
+    size_t MaxFrames = std::pow(10, NumLeading0s);
+
+    void SetPixel(const size_t X, const size_t Y, const Colour &C)
     {
         /// TODO: do we need to check bounds always? even with EdgeWrap?
-        bool WithinWidth = (0 <= X && X < MaxWidth);
-        bool WithinHeight = (0 <= Y && Y < MaxHeight);
+        bool WithinWidth = (0 <= X && X < Params.WindowX);
+        bool WithinHeight = (0 <= Y && Y < Params.WindowY);
         if (WithinWidth && WithinHeight) // draw boid within bound (triangle)
         {
             Data[X][Y] = C;
         }
     }
-    void SetPixel(const Vec2D Pos, const Colour C)
+
+    void SetPixel(const Vec2D &Pos, const Colour &C)
     {
         SetPixel(Pos[0], Pos[1], C);
     }
 
-    void SetPixelW(const double X, const double Y, const Colour C) // sets pixel with wrapping
+    void SetPixelW(const double X, const double Y, const Colour &C) // sets pixel with wrapping
     {
-        const double MaxW = MaxWidth - 1;
-        const double MaxH = MaxHeight - 1;
+        const double MaxW = Params.WindowX - 1;
+        const double MaxH = Params.WindowY - 1;
         double ClampedX = X;
         if (ClampedX < 0)
         {
@@ -123,11 +113,12 @@ class Image
     {
         // #pragma omp parallel for
         const size_t BorderSize = 0;
-        for (int i = 0; i < MaxWidth; i++)
+        for (int i = 0; i < Params.WindowX; i++)
         {
-            for (int j = 0; j < MaxHeight; j++)
+            for (int j = 0; j < Params.WindowY; j++)
             {
-                if (i < BorderSize || i > MaxWidth - BorderSize || j < BorderSize || j > MaxHeight - BorderSize)
+                if (i < BorderSize || i > Params.WindowX - BorderSize || j < BorderSize ||
+                    j > Params.WindowY - BorderSize)
                 {
                     SetPixel(i, j, Colour(255, 255, 255));
                 }
@@ -234,8 +225,6 @@ class Image
 
     void ExportPPMImage()
     {
-        const size_t NumLeading0s = 4; // max 9999 frames
-        const size_t MaxFrames = std::pow(10, NumLeading0s);
         if (NumExported > MaxFrames)
         {
             std::cout << "Cannot export more than " << MaxFrames << " frames! " << std::endl;
@@ -247,10 +236,13 @@ class Image
 
         // Begin writing output stream
         std::ofstream Img(Filename, std::ios_base::out | std::ios_base::binary);
-        Img << "P6" << std::endl << MaxWidth << " " << MaxHeight << std::endl << "255" << std::endl; // write ppm header
-        for (size_t j = 0; j < MaxHeight; ++j)
+        Img << "P6" << std::endl
+            << Params.WindowX << " " << Params.WindowY << std::endl
+            << "255" << std::endl; // write ppm header
+        /// TODO: make sure the cache locality works
+        for (size_t j = 0; j < Params.WindowY; ++j)
         {
-            for (size_t i = 0; i < MaxWidth; ++i)
+            for (size_t i = 0; i < Params.WindowX; ++i)
             {
                 const Colour RGB = Data[i][j];
                 Img << char(RGB.R) << char(RGB.G) << char(RGB.B);
