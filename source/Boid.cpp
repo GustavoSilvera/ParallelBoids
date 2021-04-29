@@ -15,6 +15,7 @@ void Boid::SenseAndPlan(const std::vector<Flock> &Flocks, const int tID)
     Vec2D RelCOM, RelCOV, Sep; // relative center-of-mass/velocity, & separation
     size_t NumCloseby = 0;
     // begin sensing all other boids in all other flocks
+
     for (const Flock &F : Flocks)
     {
         /// TODO: find the nearest boid and determine who else to look for
@@ -24,6 +25,7 @@ void Boid::SenseAndPlan(const std::vector<Flock> &Flocks, const int tID)
             Plan(B, RelCOM, RelCOV, Sep, NumCloseby);
         }
     }
+
     if (NumCloseby > 0)
     {
         a1 = ((RelCOM / NumCloseby) - Position) * Params.Cohesion;
@@ -52,7 +54,7 @@ void Boid::Plan(const Boid &B, Vec2D &RelativeCOM, Vec2D &AvgVel, Vec2D &Separat
     NumCloseby++;
 }
 
-void Boid::Act(const double DeltaTime)
+void Boid::Act(const double DeltaTime, std::vector<Flock> &Flocks)
 {
     /// NOTE: This function is meant to be independent from all other boids
     /// and thus can be run asynchronously, however it needs a barrier between itself
@@ -64,14 +66,24 @@ void Boid::Act(const double DeltaTime)
 
     // this should be here!
     // update flock decisions for others who are not in the same flock
-    // #pragma omp critical
-    //     {
-    //         if (FlockID != B->FlockID && Flocks[FlockID].Size() >= Flocks[B->FlockID].Size())
-    //         {
-    //             // their flock is smaller, I recruit
-    //             Flocks[FlockID].Recruit(B, Flocks);
-    //         }
-    //     }
+    for (Flock &F : Flocks)
+    {
+        /// TODO: find the nearest boid and determine who else to look for
+        for (Boid &B : F.Neighbourhood)
+        {
+            if (DistanceLT(B, Params.NeighbourhoodRadius))
+            {
+#pragma omp critical
+                {
+                    if (FlockID != B.FlockID && Flocks[FlockID].Size() >= Flocks[B.FlockID].Size())
+                    {
+                        // their flock is smaller, I recruit
+                        Flocks[FlockID].Recruit(B, Flocks);
+                    }
+                }
+            }
+        }
+    }
 }
 
 void Boid::CollisionCheck(Boid &Neighbour)
@@ -137,6 +149,11 @@ bool Boid::DistanceGT(const Boid &B, const double Rad) const
 bool Boid::DistanceLT(const Boid &B, const double Rad) const
 {
     return ((Position - B.Position).SizeSqr() < sqr(Rad));
+}
+
+double Boid::Distance(const Boid &B) const
+{
+    return (Position - B.Position).Size();
 }
 
 bool Boid::operator==(const Boid &B) const

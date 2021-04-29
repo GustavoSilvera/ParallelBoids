@@ -65,7 +65,7 @@ class Simulator
 #pragma omp parallel for num_threads(Params.NumThreads) schedule(static)
         for (size_t i = 0; i < AllFlocks.size(); i++)
         {
-            AllFlocks[i].Act(Params.DeltaTime);
+            AllFlocks[i].Act(Params.DeltaTime, AllFlocks);
         }
 
         auto EndTime = std::chrono::system_clock::now();

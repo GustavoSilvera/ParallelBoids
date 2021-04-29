@@ -27,13 +27,11 @@ class Flock
 
     int Size() const;
 
-    void SenseAndPlan(const size_t ThreadID, std::vector<Flock> &AllFlocks);
+    void SenseAndPlan(const size_t ThreadID, const std::vector<Flock> &AllFlocks);
 
-    void Act(const double DeltaTime);
+    void Act(const double DeltaTime, std::vector<Flock> &Flocks);
 
     void Recruit(Boid &B, std::vector<Flock> &AllFlocks);
-
-    void Leave(Boid &Emigrant);
 
     void Draw(Image &I) const;
 };

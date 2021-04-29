@@ -11,7 +11,7 @@ int Flock::Size() const
     return S;
 }
 
-void Flock::SenseAndPlan(const size_t ThreadID, std::vector<Flock> &AllFlocks)
+void Flock::SenseAndPlan(const size_t ThreadID, const std::vector<Flock> &AllFlocks)
 {
     for (size_t i = 0; i < Neighbourhood.size(); i++)
     {
@@ -19,18 +19,18 @@ void Flock::SenseAndPlan(const size_t ThreadID, std::vector<Flock> &AllFlocks)
     }
 }
 
-void Flock::Act(const double DeltaTime)
+void Flock::Act(const double DeltaTime, std::vector<Flock> &AllFlocks)
 {
     for (size_t i = 0; i < Neighbourhood.size(); i++)
     {
-        Neighbourhood[i].Act(DeltaTime);
+        Neighbourhood[i].Act(DeltaTime, AllFlocks);
     }
 }
 
 void Flock::Recruit(Boid &B, std::vector<Flock> &AllFlocks)
 {
     const size_t TheirFlockID = B.FlockID;
-    if (TheirFlockID == FlockID)
+    if (TheirFlockID == FlockID || Size() > Params.MaxSize)
     {
         // do nothing
         return;

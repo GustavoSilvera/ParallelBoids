@@ -34,6 +34,7 @@ class Boid
     Vec2D Position, Velocity, Acceleration;
     Vec2D a1, a2, a3;
     BoidParamsStruct Params;
+    Boid *NearestOtherBoid;
     size_t FlockID, BoidID, ThreadID;
     size_t MaxW = GlobalParams.ImageParams.WindowX - 1;
     size_t MaxH = GlobalParams.ImageParams.WindowY - 1;
@@ -42,7 +43,7 @@ class Boid
 
     void Plan(const Boid &B, Vec2D &RCOM, Vec2D &RCOV, Vec2D &Sep, size_t &NC) const;
 
-    void Act(const double DeltaTime);
+    void Act(const double DeltaTime, std::vector<Flock> &Flocks);
 
     void CollisionCheck(Boid &B);
 
@@ -50,9 +51,11 @@ class Boid
 
     void EdgeWrap();
 
+    bool DistanceLT(const Boid &B, const double Rad) const;
+
     bool DistanceGT(const Boid &B, const double Rad) const;
 
-    bool DistanceLT(const Boid &B, const double Rad) const;
+    double Distance(const Boid &B) const;
 
     bool operator==(const Boid &B) const;
 };
