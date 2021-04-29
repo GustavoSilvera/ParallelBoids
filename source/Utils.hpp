@@ -40,13 +40,13 @@ struct BoidParamsStruct
 struct SimulatorParamsStruct
 {
     size_t NumBoids, NumThreads, NumIterations;
+    double DeltaTime;
     bool RenderingMovie;
 };
 
 struct FlockParamsStruct
 {
     size_t MaxSize;
-    double DeltaTime;
 };
 
 struct ImageParamsStruct
@@ -95,7 +95,7 @@ inline void ParseParams(const std::string &FilePath)
         else if (!ParamName.compare("num_threads"))
             GlobalParams.SimulatorParams.NumThreads = std::stoi(ParamValue);
         else if (!ParamName.compare("timestep"))
-            GlobalParams.FlockParams.DeltaTime = std::stod(ParamValue);
+            GlobalParams.SimulatorParams.DeltaTime = std::stod(ParamValue);
         else if (!ParamName.compare("boid_radius"))
             GlobalParams.BoidParams.Radius = std::stod(ParamValue);
         else if (!ParamName.compare("cohesion"))

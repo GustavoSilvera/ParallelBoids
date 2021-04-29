@@ -17,16 +17,19 @@ class Flock
         FlockID = FiD;
         for (size_t i = 0; i < Size; i++)
         {
-            Neighbourhood.push_back(Boid(i, i));
+            Boid NewBoid(FlockID);
+            Neighbourhood.push_back(NewBoid);
         }
     }
     size_t FlockID;
     FlockParamsStruct Params;
     std::vector<Boid> Neighbourhood;
 
-    size_t Size() const;
+    int Size() const;
 
-    void Tick(const size_t ThreadID, std::vector<Flock> &AllFlocks);
+    void SenseAndPlan(const size_t ThreadID, std::vector<Flock> &AllFlocks);
+
+    void Act(const double DeltaTime);
 
     void Recruit(Boid &B, std::vector<Flock> &AllFlocks);
 

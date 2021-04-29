@@ -55,10 +55,17 @@ class Simulator
         // Run our actual problem (boid computation)
         auto StartTime = std::chrono::system_clock::now();
 
+        /// TODO: use omp for (spawns threads) and omp barrier/single
+
 #pragma omp parallel for num_threads(Params.NumThreads) schedule(static)
         for (size_t i = 0; i < AllFlocks.size(); i++)
         {
-            AllFlocks[i].Tick(omp_get_thread_num(), AllFlocks);
+            AllFlocks[i].SenseAndPlan(omp_get_thread_num(), AllFlocks);
+        }
+#pragma omp parallel for num_threads(Params.NumThreads) schedule(static)
+        for (size_t i = 0; i < AllFlocks.size(); i++)
+        {
+            AllFlocks[i].Act(Params.DeltaTime);
         }
 
         auto EndTime = std::chrono::system_clock::now();

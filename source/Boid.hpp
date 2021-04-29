@@ -17,7 +17,7 @@ class Boid
         Params = GlobalParams.BoidParams;
     }
 
-    Boid(const size_t BID, const size_t FID) : Boid()
+    Boid(const size_t FID) : Boid()
     {
         const double x0 = RandD(0, GlobalParams.ImageParams.WindowX, 3);
         const double y0 = RandD(0, GlobalParams.ImageParams.WindowY, 3);
@@ -26,31 +26,35 @@ class Boid
         Position = Vec2D(x0, y0);   // set posixtion
         Velocity = Vec2D(dx0, dy0); // set initial velocity
         FlockID = FID;              // initial flock assignment
-        BoidID = BID;               // BoidID is unique per boid
+        BoidID = NumBoids;          // BoidID is unique per boid
+        NumBoids++;                 // increment total number of boids
     }
 
+    static size_t NumBoids; // one (shared) for ALL boids
     Vec2D Position, Velocity, Acceleration;
     Vec2D a1, a2, a3;
     BoidParamsStruct Params;
-    size_t FlockID, BoidID;
+    size_t FlockID, BoidID, ThreadID;
     size_t MaxW = GlobalParams.ImageParams.WindowX - 1;
     size_t MaxH = GlobalParams.ImageParams.WindowY - 1;
-    // thread ID's for sense/plan/act loops
-    int SenseTid = 0, PlanTid = 0, ActTid = 0;
-    // list of current neighbours
-    std::vector<Boid *> Neighbours;
 
-    void Sense(std::vector<Flock> &AllFlocks, const int tID);
+    void SenseAndPlan(const std::vector<Flock> &AllFlocks, const int TiD);
 
-    void Plan(std::vector<Flock> &Flocks, const int tID);
+    void Plan(const Boid &B, Vec2D &RCOM, Vec2D &RCOV, Vec2D &Sep, size_t &NC) const;
 
-    void Act(const double DeltaTime, const int tID);
+    void Act(const double DeltaTime);
 
-    void CollisionCheck();
+    void CollisionCheck(Boid &B);
 
     void Draw(Image &I) const;
 
     void EdgeWrap();
+
+    bool DistanceGT(const Boid &B, const double Rad) const;
+
+    bool DistanceLT(const Boid &B, const double Rad) const;
+
+    bool operator==(const Boid &B) const;
 };
 
 #endif

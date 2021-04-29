@@ -1,59 +1,50 @@
 #include "Flock.hpp"
+#include <algorithm>
+#include <cassert>
 #include <omp.h>  // OpenMP
 #include <vector> // std::vector
 
-size_t Flock::Size() const
+int Flock::Size() const
 {
-    return Neighbourhood.size();
+    int S = Neighbourhood.size();
+    assert(S >= 0);
+    return S;
 }
 
-void Flock::Tick(const size_t ThreadID, std::vector<Flock> &AllFlocks)
+void Flock::SenseAndPlan(const size_t ThreadID, std::vector<Flock> &AllFlocks)
 {
-    /// TODO: fix race condition by having an old-pos
     for (size_t i = 0; i < Neighbourhood.size(); i++)
     {
-        Neighbourhood[i].Sense(AllFlocks, ThreadID);
+        Neighbourhood[i].SenseAndPlan(AllFlocks, ThreadID);
     }
+}
+
+void Flock::Act(const double DeltaTime)
+{
     for (size_t i = 0; i < Neighbourhood.size(); i++)
     {
-        Neighbourhood[i].Plan((AllFlocks), ThreadID);
-    }
-    for (size_t i = 0; i < Neighbourhood.size(); i++)
-    {
-        Neighbourhood[i].Act(Params.DeltaTime, ThreadID);
+        Neighbourhood[i].Act(DeltaTime);
     }
 }
 
 void Flock::Recruit(Boid &B, std::vector<Flock> &AllFlocks)
 {
-    /// TODO: some kind of union-find here
     const size_t TheirFlockID = B.FlockID;
     if (TheirFlockID == FlockID)
     {
         // do nothing
         return;
     }
-    // remove from their neighbourhood
-    AllFlocks[B.FlockID].Leave(B);
+    // find position of boid in other neighbourhood
+    std::vector<Boid> &OtherNeighbourhood = AllFlocks[B.FlockID].Neighbourhood;
     // update the newcomer's flock id
     B.FlockID = FlockID;
-    // add to our neighbourhood
-    Neighbourhood.push_back(B);
-}
-
-void Flock::Leave(Boid &Emigrant)
-{
-    /// TODO: this is very bad and naive
-    std::vector<Boid> Remaining;
-    for (const Boid &B : Neighbourhood)
-    {
-        if (B.BoidID != Emigrant.BoidID)
-        {
-            Remaining.push_back(B);
-        }
-    }
-    // relpace old neighbourhood with new one
-    Neighbourhood = Remaining;
+    // move B over to our flock
+    Neighbourhood.push_back(std::move(B));
+    // O(1) swap B with end of the other flock's neighbourhood for fast pop
+    std::swap(B, OtherNeighbourhood.back());
+    // destroy the last element (unusable after std::move) in OtherNeighbourhood
+    OtherNeighbourhood.pop_back(); // destructive
 }
 
 void Flock::Draw(Image &I) const
