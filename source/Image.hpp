@@ -34,10 +34,11 @@ class Colour
 };
 
 // A list of common colours
-const std::vector<Colour> IDColours = {Colour(255, 0, 0),   Colour(0, 255, 0),   Colour(0, 0, 255),
-                                       Colour(255, 255, 0), Colour(0, 255, 255), Colour(255, 0, 255),
-                                       Colour(255, 128, 0), Colour(0, 128, 255), Colour(128, 0, 255),
-                                       Colour(128, 255, 0), Colour(0, 255, 128), Colour(255, 0, 128)};
+const std::vector<Colour> IDColours = {
+    Colour(255, 0, 0),    Colour(0, 255, 0),     Colour(0, 0, 255),    Colour(255, 255, 0),   Colour(0, 255, 255),
+    Colour(255, 0, 255),  Colour(255, 128, 0),   Colour(0, 128, 255),  Colour(128, 0, 255),   Colour(128, 255, 0),
+    Colour(0, 255, 128),  Colour(255, 0, 128),   Colour(200, 255, 0),  Colour(255, 128, 80),  Colour(204, 204, 255),
+    Colour(64, 224, 208), Colour(159, 226, 191), Colour(222, 50, 100), Colour(100, 150, 237), Colour(100, 100, 100)};
 
 class Image
 {
