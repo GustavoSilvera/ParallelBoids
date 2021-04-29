@@ -4,6 +4,7 @@
 #include "Utils.hpp"
 #include <array>
 #include <cmath>
+#include <iomanip>
 
 /// TODO: use template magic
 #define VN 2
@@ -161,5 +162,16 @@ class Vec2D
     // Easiest if Data is public
     std::array<double, VN> Data; /// TODO: template the size
 };
+
+std::ostream &operator<<(std::ostream &OutStream, const Vec2D &V)
+{
+    OutStream << "(";
+    for (size_t i = 0; i < VN - 1; i++)
+    {
+        OutStream << std::to_string(int(V[i])) << ",";
+    }
+    OutStream << std::to_string(int(V[VN - 1])) + ")";
+    return OutStream;
+}
 
 #endif
