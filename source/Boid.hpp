@@ -98,12 +98,10 @@ class Boid
         /// TODO: fix the tracking for high-tick timings
         for (const Boid *Neighbour : Neighbours) // move away from any overlapping neighbours
         {
-            if (Neighbour->BoidID != BoidID && // not self
-                (Neighbour->Position - Position).SizeSqr() <
-                    sqr(Params.BoidSize + Params.BoidSize)) // only within neighbourhood
+            if (Neighbour->BoidID != BoidID &&                                         // not self
+                (Neighbour->Position - Position).SizeSqr() < sqr(2 * Params.BoidSize)) // only within neighbourhood
             {
-                const double OverlapAmnt =
-                    1 - ((Neighbour->Position - Position).Size() / (Params.BoidSize + Params.BoidSize));
+                const double OverlapAmnt = 1 - ((Neighbour->Position - Position).Size() / (2 * Params.BoidSize));
                 Position -= (Neighbour->Position - Position) * OverlapAmnt;
             }
         }
