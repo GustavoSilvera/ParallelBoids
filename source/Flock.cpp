@@ -13,6 +13,9 @@ int Flock::Size() const
 
 void Flock::SenseAndPlan(const size_t ThreadID, const std::vector<Flock> &AllFlocks)
 {
+    if (!Valid) // make sure this flock is valid
+        return;
+
     for (size_t i = 0; i < Neighbourhood.size(); i++)
     {
         Neighbourhood[i].SenseAndPlan(AllFlocks, ThreadID);
@@ -22,26 +25,27 @@ void Flock::SenseAndPlan(const size_t ThreadID, const std::vector<Flock> &AllFlo
 void Flock::Act(const double DeltaTime)
 {
     // all boids advance one timestep, can be done asynrhconously bc indep
-    if (Neighbourhood.size() > 0)
+    if (!Valid) // make sure this flock is valid
+        return;
+    COM = Vec2D(0, 0);
+    for (size_t i = 0; i < Neighbourhood.size(); i++)
     {
-        COM = Vec2D(0, 0);
-        for (size_t i = 0; i < Neighbourhood.size(); i++)
-        {
-            Boid &B = Neighbourhood[i];
-            B.Act(DeltaTime);
-            COM += B.Position; // updates COM based off the most up-to-date boid positions
-        }
-        COM /= Neighbourhood.size();
+        Boid &B = Neighbourhood[i];
+        B.Act(DeltaTime);
+        COM += B.Position; // updates COM based off the most up-to-date boid positions
     }
+    COM /= Neighbourhood.size();
 }
 
 void Flock::Delegate(std::vector<Flock> &AllFlocks)
 {
-    // update flock decisions for others who are not in the same flocks
-    Flock &F = AllFlocks[NearestFlockId(AllFlocks)];
+    if (!Valid) // make sure this flock is valid
+        return;
+    // update flock decisions for local neighbourhood based off nearby flocks
+    Flock &F = AllFlocks[NearestFlockId(AllFlocks)]; // can also maybe get "top 5 closest"
     if (F.FlockID == FlockID)
         return; // skip self (this should never happen)
-    for (Boid &B : Neighbourhood)
+    for (const Boid &B : Neighbourhood)
     {
         for (Boid &FB : F.Neighbourhood)
         {
@@ -50,25 +54,35 @@ void Flock::Delegate(std::vector<Flock> &AllFlocks)
             if (B.DistanceLT(FB, B.Params.CollisionRadius))
             {
                 /// NOTE: this is a very simple rule... only checking if
+                // their flock is smaller, then I recruit
                 if (Size() >= F.Size())
                 {
-                    // their flock is smaller, I recruit
+
                     // may be easier to atomically swap pointers
                     // rather than a big ol' critical section
 
 #pragma omp critical
                     {
-                        Recruit(B, F);
+                        /// TODO: make "buckets" where the boids are placed into
+                        // as a temporary during the asynchronous run (after a barrier)
+                        // to avoid this final race condition
+                        Recruit(FB, F);
                     }
                 }
                 break; // don't need to check the rest bc they are all in the same flock
+                // ie. as soon as one member of their flock satisfies our condition, we just say ok
+                // and delegate this boid (B) to join them
             }
         }
     }
+    // update validity after everyone left/joined
+    Valid = (Size() > 0); // need to have at least one boid to be a valid flock
 }
 
 void Flock::Recruit(Boid &B, Flock &BsFlock)
 {
+    if (!Valid) // make sure this flock is valid
+        return;
     const size_t TheirFlockID = B.FlockID;
     if (TheirFlockID == FlockID || Size() > Params.MaxSize)
     {
@@ -94,6 +108,8 @@ size_t Flock::NearestFlockId(std::vector<Flock> &AllFlocks)
     double NearestDist = 1e300; // big num
     for (const Flock &F : AllFlocks)
     {
+        if (!F.Valid)
+            continue; // ignore invalid flocks
         double FDist = (COM - F.COM).Size();
         if (FDist < NearestDist && F.FlockID != FlockID)
         {
@@ -106,6 +122,9 @@ size_t Flock::NearestFlockId(std::vector<Flock> &AllFlocks)
 
 void Flock::Draw(Image &I) const
 {
+    if (!Valid) // make sure this flock is valid
+        return;
+
     /// TODO: check if can-parallelize?
     for (const Boid &B : Neighbourhood)
     {

@@ -21,13 +21,13 @@ class Flock
             Boid NewBoid(FlockID);
             Neighbourhood.push_back(NewBoid);
         }
-        NeighbourhoodBackup = Neighbourhood; // copy over
+        Valid = (Size > 0);
     }
     size_t FlockID;
+    bool Valid;
     Vec2D COM; // center of mass of this flock
     FlockParamsStruct Params;
     std::vector<Boid> Neighbourhood;
-    std::vector<Boid> NeighbourhoodBackup; // separate copy
 
     int Size() const;
 
