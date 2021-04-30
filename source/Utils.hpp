@@ -14,14 +14,14 @@ inline double sqr(const double a)
     return a * a;
 }
 
-double RandD(const double lo, const double hi, const size_t granularity)
+inline double RandD(const double lo, const double hi, const size_t granularity)
 {
     const double Range = hi - lo;
     const double Scale = double(std::rand()) / RAND_MAX;
     return lo + Scale * Range;
 }
 
-bool stob(const std::string &s)
+inline bool stob(const std::string &s)
 {
     // assuming s is either "true" or "false"
     return (s.at(0) == 't');
@@ -32,8 +32,9 @@ bool stob(const std::string &s)
 struct BoidParamsStruct
 {
     double Cohesion, Alignment, Separation;
-    double BoidMaxVelocity, BoidSize;
+    double MaxVel, Radius;
     double NeighbourhoodRadius, CollisionRadius;
+    bool ColourByThread;
 };
 
 struct SimulatorParamsStruct
@@ -41,6 +42,11 @@ struct SimulatorParamsStruct
     size_t NumBoids, NumThreads, NumIterations;
     double DeltaTime;
     bool RenderingMovie;
+};
+
+struct FlockParamsStruct
+{
+    size_t MaxSize;
 };
 
 struct ImageParamsStruct
@@ -52,13 +58,14 @@ struct ParamsStruct
 {
     BoidParamsStruct BoidParams;
     SimulatorParamsStruct SimulatorParams;
+    FlockParamsStruct FlockParams;
     ImageParamsStruct ImageParams;
 };
 
-// global params
-ParamsStruct GlobalParams;
+// global params (extern for multiple .o files)
+extern ParamsStruct GlobalParams;
 
-void ParseParams(const std::string &FilePath)
+inline void ParseParams(const std::string &FilePath)
 {
     // create input stream to get file data
     std::ifstream Input(FilePath);
@@ -77,7 +84,7 @@ void ParseParams(const std::string &FilePath)
         Input >> Tmp;
         if (Input.bad() || Input.fail())
             break;
-        if (Tmp.at(0) == '[') // ignoring labels
+        if (Tmp.at(0) == '[' || Tmp.at(0) == '#') // ignoring labels & comments
             continue;
         std::string ParamName = Tmp.substr(0, Tmp.find(Delim));
         std::string ParamValue = Tmp.substr(Tmp.find(Delim) + 1, Tmp.size());
@@ -90,7 +97,7 @@ void ParseParams(const std::string &FilePath)
         else if (!ParamName.compare("timestep"))
             GlobalParams.SimulatorParams.DeltaTime = std::stod(ParamValue);
         else if (!ParamName.compare("boid_radius"))
-            GlobalParams.BoidParams.BoidSize = std::stod(ParamValue);
+            GlobalParams.BoidParams.Radius = std::stod(ParamValue);
         else if (!ParamName.compare("cohesion"))
             GlobalParams.BoidParams.Cohesion = std::stod(ParamValue);
         else if (!ParamName.compare("alignment"))
@@ -102,13 +109,17 @@ void ParseParams(const std::string &FilePath)
         else if (!ParamName.compare("neighbourhood_radius"))
             GlobalParams.BoidParams.NeighbourhoodRadius = std::stod(ParamValue);
         else if (!ParamName.compare("max_vel"))
-            GlobalParams.BoidParams.BoidMaxVelocity = std::stod(ParamValue);
+            GlobalParams.BoidParams.MaxVel = std::stod(ParamValue);
         else if (!ParamName.compare("window_x"))
             GlobalParams.ImageParams.WindowX = std::stoi(ParamValue);
         else if (!ParamName.compare("window_y"))
             GlobalParams.ImageParams.WindowY = std::stoi(ParamValue);
         else if (!ParamName.compare("render"))
             GlobalParams.SimulatorParams.RenderingMovie = stob(ParamValue);
+        else if (!ParamName.compare("colour_mode"))
+            GlobalParams.BoidParams.ColourByThread = stob(ParamValue);
+        else if (!ParamName.compare("max_size"))
+            GlobalParams.FlockParams.MaxSize = std::stoi(ParamValue);
         else
             continue;
     }

@@ -149,7 +149,7 @@ class Vec2D
         for (size_t i = 0; i < VN; i++)
         {
             // ensures elements are present
-            Data[i] = Other[i];
+            Data[i] = Other.Data[i];
         }
     }
 
@@ -171,7 +171,7 @@ class Vec2D
     std::array<double, VN> Data; /// TODO: template the size
 };
 
-std::ostream &operator<<(std::ostream &OutStream, const Vec2D &V)
+inline std::ostream &operator<<(std::ostream &OutStream, const Vec2D &V)
 {
     OutStream << "(";
     for (size_t i = 0; i < VN - 1; i++)
