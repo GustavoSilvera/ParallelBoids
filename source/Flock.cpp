@@ -37,16 +37,14 @@ void Flock::Delegate(const std::vector<Flock> &AllFlocks)
 {
 
     assert(Valid); // make sure this flock is valid
-
     // update flock decisions for local neighbourhood based off nearby flocks
-    int NearestFlock = NearestFlockId(AllFlocks);
-    if (NearestFlock < 0) // improperly assigned (ie. no other flocks)
+    // can also maybe get "top 5 closest"
+    const Flock &F = *(NearestFlockId(AllFlocks));
+    if (F.FlockID == FlockID)
     {
+        std::cout << "No more flocks!" << std::endl;
         return;
     }
-    const Flock &F = AllFlocks[NearestFlock]; // can also maybe get "top 5 closest"
-    if (F.FlockID == FlockID)
-        return; // skip self (this should never happen)
 
     // clear buckets from last Delegation
     Emigrants.clear(); // if not done first, may get double counting later
@@ -127,11 +125,11 @@ void Flock::Recruit(Boid &B, Flock &BsFlock)
     OtherNeighbourhood.pop_back(); // destructive
 }
 
-int Flock::NearestFlockId(const std::vector<Flock> &AllFlocks) const
+const Flock *Flock::NearestFlockId(const std::vector<Flock> &AllFlocks) const
 {
     // finds the flock physically nearest to this one
-    int Idx = -1;               // should be a good number as long as >1 flocks exist
-    double NearestDist = 1e300; // big num
+    const Flock *NearestFlock = this; // self ptr
+    double NearestDist = 1e300;       // big num
     for (const Flock &F : AllFlocks)
     {
         if (!F.Valid)
@@ -139,11 +137,11 @@ int Flock::NearestFlockId(const std::vector<Flock> &AllFlocks) const
         double FDist = (COM - F.COM).Size();
         if (FDist < NearestDist && F.FlockID != FlockID)
         {
-            Idx = F.FlockID;
+            NearestFlock = &F;
             NearestDist = FDist;
         }
     }
-    return Idx;
+    return NearestFlock;
 }
 
 void Flock::Draw(Image &I) const
@@ -162,8 +160,14 @@ void Flock::CleanUp(std::vector<Flock> &AllFlocks)
     /// NOTE: this can probably be parallelized as well...
     // remove all empty (invalid) flocks
     auto IsInvalid = [](const Flock &F) {
-        assert(F.Valid || (!F.Valid && F.Size() == 0));
+        assert(F.Valid == (F.Size() > 0));
         return !F.Valid;
     };
     AllFlocks.erase(std::remove_if(AllFlocks.begin(), AllFlocks.end(), IsInvalid), AllFlocks.end());
+#ifndef NDEBUG
+    for (const Flock &A : AllFlocks)
+    {
+        assert(A.Valid);
+    }
+#endif
 }

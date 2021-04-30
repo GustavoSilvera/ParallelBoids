@@ -43,7 +43,7 @@ class Flock
 
     void Recruit(Boid &B, Flock &BsFlock);
 
-    int NearestFlockId(const std::vector<Flock> &AllFlocks) const;
+    const Flock *NearestFlockId(const std::vector<Flock> &AllFlocks) const;
 
     void Draw(Image &I) const;
 
