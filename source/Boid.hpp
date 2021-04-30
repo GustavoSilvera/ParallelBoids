@@ -43,7 +43,7 @@ class Boid
 
     void Plan(const Boid &B, Vec2D &RCOM, Vec2D &RCOV, Vec2D &Sep, size_t &NC) const;
 
-    void Act(const double DeltaTime, std::vector<Flock> &Flocks);
+    void Act(const double DeltaTime);
 
     void CollisionCheck(Boid &B);
 
@@ -55,7 +55,7 @@ class Boid
 
     bool DistanceGT(const Boid &B, const double Rad) const;
 
-    double Distance(const Boid &B) const;
+    double DistanceTo(const Boid &B) const;
 
     bool operator==(const Boid &B) const;
 };

@@ -16,6 +16,9 @@ void Boid::SenseAndPlan(const std::vector<Flock> &Flocks, const int tID)
     size_t NumCloseby = 0;
     // begin sensing all other boids in all other flocks
 
+    /// This can be optimized heavily, for instance, what if we used an NxN array where
+    // each point is a 'set' of boids, then we can quickly index to spacially local
+    // boids
     for (const Flock &F : Flocks)
     {
         /// TODO: find the nearest boid and determine who else to look for
@@ -54,7 +57,7 @@ void Boid::Plan(const Boid &B, Vec2D &RelativeCOM, Vec2D &AvgVel, Vec2D &Separat
     NumCloseby++;
 }
 
-void Boid::Act(const double DeltaTime, std::vector<Flock> &Flocks)
+void Boid::Act(const double DeltaTime)
 {
     /// NOTE: This function is meant to be independent from all other boids
     /// and thus can be run asynchronously, however it needs a barrier between itself
@@ -63,27 +66,6 @@ void Boid::Act(const double DeltaTime, std::vector<Flock> &Flocks)
     Velocity = (Velocity + Acceleration).LimitMagnitude(Params.MaxVel);
     Position += Velocity * DeltaTime;
     EdgeWrap(); // optional
-
-    // this should be here!
-    // update flock decisions for others who are not in the same flock
-    for (Flock &F : Flocks)
-    {
-        /// TODO: find the nearest boid and determine who else to look for
-        for (Boid &B : F.Neighbourhood)
-        {
-            if (DistanceLT(B, Params.NeighbourhoodRadius))
-            {
-#pragma omp critical
-                {
-                    if (FlockID != B.FlockID && Flocks[FlockID].Size() >= Flocks[B.FlockID].Size())
-                    {
-                        // their flock is smaller, I recruit
-                        Flocks[FlockID].Recruit(B, Flocks);
-                    }
-                }
-            }
-        }
-    }
 }
 
 void Boid::CollisionCheck(Boid &Neighbour)
@@ -151,7 +133,7 @@ bool Boid::DistanceLT(const Boid &B, const double Rad) const
     return ((Position - B.Position).SizeSqr() < sqr(Rad));
 }
 
-double Boid::Distance(const Boid &B) const
+double Boid::DistanceTo(const Boid &B) const
 {
     return (Position - B.Position).Size();
 }

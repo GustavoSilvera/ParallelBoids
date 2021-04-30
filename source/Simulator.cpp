@@ -65,7 +65,12 @@ class Simulator
 #pragma omp parallel for num_threads(Params.NumThreads) schedule(static)
         for (size_t i = 0; i < AllFlocks.size(); i++)
         {
-            AllFlocks[i].Act(Params.DeltaTime, AllFlocks);
+            AllFlocks[i].Act(Params.DeltaTime);
+        }
+#pragma omp parallel for num_threads(Params.NumThreads) schedule(static)
+        for (size_t i = 0; i < AllFlocks.size(); i++)
+        {
+            AllFlocks[i].Delegate(AllFlocks);
         }
 
         auto EndTime = std::chrono::system_clock::now();
@@ -76,6 +81,8 @@ class Simulator
     void Render()
     {
         // draw all the boids onto the frame
+
+#pragma omp parallel for num_threads(Params.NumThreads) schedule(static)
         for (const Flock &F : AllFlocks)
         {
             F.Draw(I);
