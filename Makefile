@@ -2,7 +2,8 @@ TARGET = Simulator # name of binary
 OBJS += Simulator.o Flock.o Boid.o
 
 CXX = clang++
-CFLAGS = -std=c++11 -Wall -Werror -pedantic -pthread -fopenmp -g -O3 -DNDEBUG 
+# CFLAGS = -std=c++11 -Wall -Werror -pedantic -pthread -fopenmp -g -O3 -DNDEBUG 
+CFLAGS = -std=c++11 -Wall -Werror -pedantic -pthread -fopenmp -g -O3 
 SRC_DIR = source
 
 LDFLAGS += $(LIBS)

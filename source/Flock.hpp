@@ -29,7 +29,7 @@ class Flock
     Vec2D COM; // center of mass of this flock
     FlockParamsStruct Params;
     std::vector<Boid> Neighbourhood;
-    std::unordered_map<size_t, std::vector<size_t>> Buckets; // buckets where the delegates go
+    std::unordered_map<size_t, std::vector<Boid>> Emigrants; // buckets where the delegates go
 
     int Size() const;
 
@@ -37,15 +37,17 @@ class Flock
 
     void Act(const double DeltaTime);
 
-    void Delegate(std::vector<Flock> &Flocks);
+    void Delegate(const std::vector<Flock> &Flocks);
 
-    void AssignToFlock(std::vector<Flock> &AllFlocks);
+    void AssignToFlock(const std::vector<Flock> &AllFlocks);
 
     void Recruit(Boid &B, Flock &BsFlock);
 
-    size_t NearestFlockId(const std::vector<Flock> &AllFlocks) const;
+    int NearestFlockId(const std::vector<Flock> &AllFlocks) const;
 
     void Draw(Image &I) const;
+
+    static void CleanUp(std::vector<Flock> &AllFlocks);
 };
 
 #endif

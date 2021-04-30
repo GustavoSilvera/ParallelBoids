@@ -12,20 +12,17 @@ int Flock::Size() const
 
 void Flock::SenseAndPlan(const size_t ThreadID, const std::vector<Flock> &AllFlocks)
 {
-    if (!Valid) // make sure this flock is valid
-        return;
-
-    for (size_t i = 0; i < Neighbourhood.size(); i++)
+    assert(Valid); // make sure this flock is valid
+    for (Boid &B : Neighbourhood)
     {
-        Neighbourhood[i].SenseAndPlan(AllFlocks, ThreadID);
+        B.SenseAndPlan(AllFlocks, ThreadID);
     }
 }
 
 void Flock::Act(const double DeltaTime)
 {
     // all boids advance one timestep, can be done asynrhconously bc indep
-    if (!Valid) // make sure this flock is valid
-        return;
+    assert(Valid); // make sure this flock is valid
     COM = Vec2D(0, 0);
     for (size_t i = 0; i < Neighbourhood.size(); i++)
     {
@@ -33,28 +30,31 @@ void Flock::Act(const double DeltaTime)
         B.Act(DeltaTime);
         COM += B.Position; // updates COM based off the most up-to-date boid positions
     }
-    COM /= Neighbourhood.size();
+    COM /= Neighbourhood.size(); // we know Neighbourhood.size() > 0 bc Valid
 }
 
-void Flock::Delegate(std::vector<Flock> &AllFlocks)
+void Flock::Delegate(const std::vector<Flock> &AllFlocks)
 {
-    if (!Valid) // make sure this flock is valid
-        return;
+
+    assert(Valid); // make sure this flock is valid
+
     // update flock decisions for local neighbourhood based off nearby flocks
-    const Flock &F = AllFlocks[NearestFlockId(AllFlocks)]; // can also maybe get "top 5 closest"
+    int NearestFlock = NearestFlockId(AllFlocks);
+    if (NearestFlock < 0) // improperly assigned (ie. no other flocks)
+    {
+        return;
+    }
+    const Flock &F = AllFlocks[NearestFlock]; // can also maybe get "top 5 closest"
     if (F.FlockID == FlockID)
         return; // skip self (this should never happen)
 
     // clear buckets from last Delegation
-    Buckets.clear();
-
-    // technically don't need dictionary rn, since we're sending to the same flock
-    Buckets[F.FlockID] = std::vector<size_t>();
-
+    Emigrants.clear(); // if not done first, may get double counting later
     // Look through our neighbourhood
     for (size_t i = 0; i < Neighbourhood.size(); i++)
     {
         Boid &B = Neighbourhood[i];
+        bool Emigrated = false;
         for (const Boid &FB : F.Neighbourhood)
         {
             /// NOTE: can do cool stuff like if the dist to their flock's COM is less
@@ -66,45 +66,40 @@ void Flock::Delegate(std::vector<Flock> &AllFlocks)
                 bool FlockRule = (Size() <= F.Size());
                 if (FlockRule)
                 {
-                    Buckets[F.FlockID].push_back(i); // copy the index over to indicate
-                    // that this boid (B=Neighbourhood[i]) is moving over
+                    Emigrants[F.FlockID].push_back(B);
+                    Emigrants[F.FlockID].back().FlockID = F.FlockID; // update latest bucket's FiD
+                    Emigrated = true; // indicate that this boid is part of the emigration bucket
                 }
                 break; // don't need to check the rest bc they are all in the same flock
                 // ie. as soon as one member of their flock satisfies our condition, we just say ok
                 // and delegate this boid (B) to join them
             }
         }
+        if (!Emigrated)
+        {
+            // stores all the boids (unchanged) into what will be this flock's new neighbourhood
+            Emigrants[FlockID].push_back(B);
+        }
     }
+    // No boid left behind
+    assert(Emigrants[FlockID].size() + Emigrants[F.FlockID].size() == Neighbourhood.size());
 }
 
-void Flock::AssignToFlock(std::vector<Flock> &AllFlocks)
+void Flock::AssignToFlock(const std::vector<Flock> &AllFlocks)
 {
-    // for all flocks that we are communicating with
-    for (std::pair<const size_t, std::vector<size_t>> &V : Buckets)
+    assert(Valid);
+    if (AllFlocks.size() > 1) // if this is the last flock, do nothing
     {
-        const size_t OtherFlockID = V.first;    // key
-        std::vector<size_t> &Bucket = V.second; // value
+        Neighbourhood.clear(); // clear my local neighbourhood
 
-        // may be easier to atomically swap pointers
-        // rather than a big ol' critical section
-        for (const size_t EmigrantIdx : Bucket)
+        for (const Flock &Other : AllFlocks)
         {
-#pragma omp critical
+            // O(1) dictionary accesses
+            if (Other.Emigrants.find(FlockID) != Other.Emigrants.end())
             {
-                /// TODO: fine grained locking (per flock) rather than big critical over all
-                // thread-safe insert all bucket values to this vector
-                std::vector<Boid> &N = AllFlocks[OtherFlockID].Neighbourhood;
-
-                /// NOTE: using std::move to non-destructively move the ownership
-                Boid &Emigrant = Neighbourhood[EmigrantIdx]; // reference to emigrant boid
-                Emigrant.FlockID = OtherFlockID;
-                N.push_back(std::move(Emigrant));
-
-                // Now Emigrant is in an unusable state & must be removed from this flock
-                // O(1) swap with end of the other flock's neighbourhood for fast pop
-                std::swap(Emigrant, Neighbourhood.back());
-                // destroy the last element (Emigrant) in Neighbourhood
-                Neighbourhood.pop_back(); // destructive
+                const std::vector<Boid> &Immigrants = Other.Emigrants.at(FlockID);
+                // don't need a critical section bc writing to local, reading from remote
+                Neighbourhood.insert(Neighbourhood.end(), Immigrants.begin(), Immigrants.end());
             }
         }
     }
@@ -113,9 +108,8 @@ void Flock::AssignToFlock(std::vector<Flock> &AllFlocks)
 
 void Flock::Recruit(Boid &B, Flock &BsFlock)
 {
-    if (!Valid) // make sure this flock is valid
-        return;
-    const size_t TheirFlockID = B.FlockID;
+    assert(Valid);
+    const size_t TheirFlockID = B.GetFlockID();
     if (TheirFlockID == FlockID || Size() > Params.MaxSize)
     {
         // do nothing
@@ -133,10 +127,10 @@ void Flock::Recruit(Boid &B, Flock &BsFlock)
     OtherNeighbourhood.pop_back(); // destructive
 }
 
-size_t Flock::NearestFlockId(const std::vector<Flock> &AllFlocks) const
+int Flock::NearestFlockId(const std::vector<Flock> &AllFlocks) const
 {
     // finds the flock physically nearest to this one
-    size_t Idx = -1;            // should be a good number as long as >1 flocks exist
+    int Idx = -1;               // should be a good number as long as >1 flocks exist
     double NearestDist = 1e300; // big num
     for (const Flock &F : AllFlocks)
     {
@@ -154,12 +148,22 @@ size_t Flock::NearestFlockId(const std::vector<Flock> &AllFlocks) const
 
 void Flock::Draw(Image &I) const
 {
-    if (!Valid) // make sure this flock is valid
-        return;
+    assert(Valid);
 
     /// TODO: check if can-parallelize?
     for (const Boid &B : Neighbourhood)
     {
         B.Draw(I);
     }
+}
+
+void Flock::CleanUp(std::vector<Flock> &AllFlocks)
+{
+    /// NOTE: this can probably be parallelized as well...
+    // remove all empty (invalid) flocks
+    auto IsInvalid = [](const Flock &F) {
+        assert(F.Valid || (!F.Valid && F.Size() == 0));
+        return !F.Valid;
+    };
+    AllFlocks.erase(std::remove_if(AllFlocks.begin(), AllFlocks.end(), IsInvalid), AllFlocks.end());
 }

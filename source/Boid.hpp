@@ -32,6 +32,7 @@ class Boid
 
     Boid(const Boid &B) : Boid()
     {
+        // constructor to take a copy of a boid
         Position = B.Position;
         Velocity = B.Velocity;
         FlockID = B.FlockID;
@@ -39,23 +40,16 @@ class Boid
         ThreadID = B.ThreadID;
     }
 
-    Boid(bool Valid)
-    {
-        if (Valid)
-        {
-            std::cout << "NO! this is supposed to be a 'dummy' boid as a placeholder";
-        }
-        FlockID = -1;
-    }
-
     static size_t NumBoids; // one (shared) for ALL boids
     Vec2D Position, Velocity, Acceleration;
     Vec2D a1, a2, a3;
     BoidParamsStruct Params;
-    // Flock *Flock;
+    // Flock *FlockPtr;
     size_t FlockID, BoidID, ThreadID;
     size_t MaxW = GlobalParams.ImageParams.WindowX - 1;
     size_t MaxH = GlobalParams.ImageParams.WindowY - 1;
+
+    size_t GetFlockID() const;
 
     void SenseAndPlan(const std::vector<Flock> &AllFlocks, const int TiD);
 

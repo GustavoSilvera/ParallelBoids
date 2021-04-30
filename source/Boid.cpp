@@ -5,6 +5,11 @@
 // declaring NumBoids for all boids (static)
 size_t Boid::NumBoids;
 
+size_t Boid::GetFlockID() const
+{
+    return FlockID;
+}
+
 void Boid::SenseAndPlan(const std::vector<Flock> &Flocks, const int tID)
 {
     ThreadID = tID;
