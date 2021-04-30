@@ -51,15 +51,7 @@ class Image
     void Init()
     {
         // Initialize all the data
-        for (size_t i = 0; i < Params.WindowX; i++)
-        {
-            std::vector<Colour> Row;
-            for (size_t j = 0; j < Params.WindowY; j++)
-            {
-                Row.push_back(Colour(0, 0, 0)); // all black
-            }
-            Data.push_back(Row);
-        }
+        Data = std::vector<std::vector<Colour>>(Params.WindowX, std::vector<Colour>(Params.WindowY));
     }
 
     ImageParamsStruct Params;
@@ -112,7 +104,6 @@ class Image
 
     void Blank()
     {
-        // #pragma omp parallel for
         const size_t BorderSize = 0;
         for (int i = 0; i < Params.WindowX; i++)
         {

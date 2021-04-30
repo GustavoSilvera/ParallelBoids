@@ -1,10 +1,11 @@
 #ifndef FLOCK
 #define FLOCK
 
-#include "Boid.hpp" // Boids
-#include "Image.hpp"
-#include "Vec.hpp"
-#include <vector> // std::vector
+#include "Boid.hpp"      // Boids
+#include "Image.hpp"     // Image (for rendering)
+#include "Vec.hpp"       // Vec2D (for COM)
+#include <unordered_map> // std::unordered_map
+#include <vector>        // std::vector
 
 class Flock
 {
@@ -28,6 +29,7 @@ class Flock
     Vec2D COM; // center of mass of this flock
     FlockParamsStruct Params;
     std::vector<Boid> Neighbourhood;
+    std::unordered_map<size_t, std::vector<size_t>> Buckets; // buckets where the delegates go
 
     int Size() const;
 
@@ -37,9 +39,11 @@ class Flock
 
     void Delegate(std::vector<Flock> &Flocks);
 
+    void AssignToFlock(std::vector<Flock> &AllFlocks);
+
     void Recruit(Boid &B, Flock &BsFlock);
 
-    size_t NearestFlockId(std::vector<Flock> &AllFlocks);
+    size_t NearestFlockId(const std::vector<Flock> &AllFlocks) const;
 
     void Draw(Image &I) const;
 };

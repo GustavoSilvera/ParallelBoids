@@ -30,11 +30,29 @@ class Boid
         NumBoids++;                 // increment total number of boids
     }
 
+    Boid(const Boid &B) : Boid()
+    {
+        Position = B.Position;
+        Velocity = B.Velocity;
+        FlockID = B.FlockID;
+        BoidID = B.BoidID;
+        ThreadID = B.ThreadID;
+    }
+
+    Boid(bool Valid)
+    {
+        if (Valid)
+        {
+            std::cout << "NO! this is supposed to be a 'dummy' boid as a placeholder";
+        }
+        FlockID = -1;
+    }
+
     static size_t NumBoids; // one (shared) for ALL boids
     Vec2D Position, Velocity, Acceleration;
     Vec2D a1, a2, a3;
     BoidParamsStruct Params;
-    Boid *NearestOtherBoid;
+    // Flock *Flock;
     size_t FlockID, BoidID, ThreadID;
     size_t MaxW = GlobalParams.ImageParams.WindowX - 1;
     size_t MaxH = GlobalParams.ImageParams.WindowY - 1;

@@ -149,7 +149,7 @@ class Vec2D
         for (size_t i = 0; i < VN; i++)
         {
             // ensures elements are present
-            Data[i] = Other[i];
+            Data[i] = Other.Data[i];
         }
     }
 
