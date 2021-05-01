@@ -10,7 +10,7 @@
 class Colour
 {
   public:
-    Colour(int r, int g, int b)
+    Colour(uint8_t r, uint8_t g, uint8_t b)
     {
         R = r;
         G = g;
@@ -20,16 +20,16 @@ class Colour
     {
         Colour(0, 0, 0);
     }
-    double R, G, B;
+    uint8_t R, G, B;
 
     Colour Norm0_1() const
     {
-        return Colour(R / 255.0, G / 255.0, B / 255.0);
+        return Colour(R / 255, G / 255, B / 255);
     }
 
     Colour Norm0_255() const
     {
-        return Colour(R * 255.0, G * 255.0, B * 255.0);
+        return Colour(R * 255, G * 255, B * 255);
     }
 };
 
@@ -50,15 +50,20 @@ class Image
 
     void Init()
     {
-        // Initialize all the data
-        Data = std::vector<std::vector<Colour>>(Params.WindowX, std::vector<Colour>(Params.WindowY));
+        // Initialize all the data (1d vector)
+        Data = std::vector<Colour>(Params.WindowX * Params.WindowY);
     }
 
     ImageParamsStruct Params;
-    std::vector<std::vector<Colour>> Data;
+    std::vector<Colour> Data;
     size_t NumExported = 0;
     size_t NumLeading0s = 4; // max 9999 frames
     size_t MaxFrames = std::pow(10, NumLeading0s);
+
+    void SetData(const size_t X, const size_t Y, const Colour &C)
+    {
+        Data[X + Y * Params.WindowX] = C;
+    }
 
     void SetPixel(const size_t X, const size_t Y, const Colour &C)
     {
@@ -67,7 +72,7 @@ class Image
         bool WithinHeight = (0 <= Y && Y < Params.WindowY);
         if (WithinWidth && WithinHeight) // draw boid within bound (triangle)
         {
-            Data[X][Y] = C;
+            SetData(X, Y, C);
         }
     }
 
@@ -99,7 +104,7 @@ class Image
         {
             ClampedY -= MaxH;
         }
-        Data[ClampedX][ClampedY] = C;
+        SetData(ClampedX, ClampedY, C);
     }
 
     void Blank()
@@ -231,14 +236,12 @@ class Image
         Img << "P6" << std::endl
             << Params.WindowX << " " << Params.WindowY << std::endl
             << "255" << std::endl; // write ppm header
-        /// TODO: make sure the cache locality works
-        for (size_t j = 0; j < Params.WindowY; ++j)
+
+        /// TODO: can we write rows all at once instead of each pixel at once
+        for (size_t i = 0; i < Data.size(); ++i)
         {
-            for (size_t i = 0; i < Params.WindowX; ++i)
-            {
-                const Colour RGB = Data[i][j];
-                Img << char(RGB.R) << char(RGB.G) << char(RGB.B);
-            }
+            const Colour &RGB = Data[i];
+            Img << char(RGB.R) << char(RGB.G) << char(RGB.B);
         }
         Img.close();
         NumExported++;                                                       // exported a new file

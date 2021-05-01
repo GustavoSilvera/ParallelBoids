@@ -95,11 +95,10 @@ class Simulator
     void Render()
     {
         // draw all the boids onto the frame
-
 #pragma omp parallel for num_threads(Params.NumThreads) schedule(static)
-        for (const Flock &F : AllFlocks)
+        for (size_t i = 0; i < AllFlocks.size(); i++)
         {
-            F.Draw(I);
+            AllFlocks[i].Draw(I);
         }
         // draw the target onto the frame
         I.ExportPPMImage();
