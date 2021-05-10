@@ -37,7 +37,6 @@ class Boid
         Velocity = B.Velocity;
         FlockID = B.FlockID;
         BoidID = B.BoidID;
-        ThreadID = B.ThreadID;
     }
 
     static size_t NumBoids; // one (shared) for ALL boids
@@ -45,13 +44,13 @@ class Boid
     Vec2D a1, a2, a3;
     static BoidParamsStruct Params;
     // Flock *FlockPtr;
-    size_t FlockID, BoidID, ThreadID;
+    size_t FlockID, BoidID;
     size_t MaxW = GlobalParams.ImageParams.WindowX - 1;
     size_t MaxH = GlobalParams.ImageParams.WindowY - 1;
 
     size_t GetFlockID() const;
 
-    void SenseAndPlan(const std::vector<Flock> &AllFlocks, const int TiD);
+    void SenseAndPlan(const std::vector<Flock> &AllFlocks);
 
     void Plan(const Boid &B, Vec2D &RCOM, Vec2D &RCOV, Vec2D &Sep, size_t &NC) const;
 

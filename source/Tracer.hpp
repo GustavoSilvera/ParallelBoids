@@ -1,35 +1,57 @@
 #ifndef TRACER
 #define TRACER
 
-#include <vector>
+#include "Flock.hpp"
 #include "Utils.hpp"
 #include <omp.h>
+#include <vector>
 
 class Tracer
 {
-public:
-    static void AddRead(const size_t P_Requestor, const size_t P_Holder);
-    static void AddWrite(const size_t P_Requestor, const size_t P_Holder);
+  public:
+    static void InitFlockMatrix(const size_t NumFlocks);
+    static void SaveFlockMatrix(const std::vector<Flock> &AllFlocks);
+    // incrementors for reads/writes
+    static void AddWrite(const size_t F_Requestor, const size_t F_Holder, const Flock::FlockOp F);
+    static void AddRead(const size_t F_Requestor, const size_t F_Holder, const Flock::FlockOp F);
+    // incrementors for per-frame tick time
+    static void AddTickT(const double ElapsedTime);
+    // print everything to stdout
     static void Dump();
 
-private:
-    Tracer(const size_t NumThreads) : CommunicationMatrix(NumThreads, std::vector<TraceData>(NumThreads))
+  private:
+    static void AddReads(const size_t T_Requestor, const size_t T_Holder, const size_t Amnt);
+    static void AddWrites(const size_t T_Requestor, const size_t T_Holder, const size_t Amnt);
+    Tracer(const size_t NumThreads) : MemoryOpMatrix(NumThreads, std::vector<MemoryOps>(NumThreads))
     {
-        Params = GlobalParams.TracerParams;
     }
     static Tracer *Instance()
     {
         /// singleton class
+        Params = GlobalParams.TracerParams;
         // only initializes static T the FIRST time
         static Tracer *T = new Tracer(Params.NumThreads);
         return T;
     }
     static TracerParamsStruct Params;
-    struct TraceData
+    struct MemoryOps
     {
-        size_t Reads, Writes;
+        size_t Reads = 0;
+        size_t Writes = 0;
     };
-    std::vector<std::vector<TraceData>> CommunicationMatrix;
+    std::vector<std::vector<MemoryOps>> MemoryOpMatrix;
+
+    struct FlockOps
+    {
+        MemoryOps SenseAndPlan;
+        MemoryOps Act;
+        MemoryOps Delegate;
+        MemoryOps AssignToFlock;
+        Flock::TIDStruct RequestorTIDs, HolderTIDs;
+    };
+    static void AddFlockOps(const Tracer::FlockOps &FO);
+    std::vector<std::vector<FlockOps>> CommunicationMatrix;
+    std::vector<double> TickTimes;
 };
 
 #endif

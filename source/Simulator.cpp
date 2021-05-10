@@ -1,7 +1,7 @@
 #include "Flock.hpp"  // Flocks
+#include "Tracer.hpp" // Tracer
 #include "Utils.hpp"  // Params
 #include "Vec.hpp"    // Vec3D
-#include "Tracer.hpp" // Tracer
 #include <chrono>     // timing threads
 #include <omp.h>      // OpenMP
 #include <string>     // cout
@@ -9,7 +9,7 @@
 
 class Simulator
 {
-public:
+  public:
     Simulator()
     {
         Params = GlobalParams.SimulatorParams;
@@ -67,6 +67,8 @@ public:
         }
         assert(Params.NumBoids == BoidCount);
 #endif
+        // begin tracking which flocks communicate with which
+        Tracer::InitFlockMatrix(AllFlocks.size());
 #pragma omp parallel num_threads(Params.NumThreads) // spawns threads
         {
 #pragma omp for schedule(static)
@@ -78,7 +80,7 @@ public:
 #pragma omp for schedule(static)
             for (size_t i = 0; i < AllFlocks.size(); i++)
             {
-                AllFlocks[i].Act(Params.DeltaTime);
+                AllFlocks[i].Act(omp_get_thread_num(), Params.DeltaTime);
             }
             // if we don't parallelize across flocks, then every boid will remain in
             // their initial (singleton) flock
@@ -88,20 +90,24 @@ public:
 #pragma omp for schedule(static)
                 for (size_t i = 0; i < AllFlocks.size(); i++)
                 {
-                    AllFlocks[i].Delegate(AllFlocks);
+                    AllFlocks[i].Delegate(omp_get_thread_num(), AllFlocks);
                 }
 #pragma omp barrier
 #pragma omp for schedule(static)
                 for (size_t i = 0; i < AllFlocks.size(); i++)
                 {
-                    AllFlocks[i].AssignToFlock(AllFlocks);
+                    AllFlocks[i].AssignToFlock(omp_get_thread_num(), AllFlocks);
                 }
             }
         }
+        // convert flock data to processor communications
+        Tracer::SaveFlockMatrix(AllFlocks);
         // remove empty (invalid) flocks
         Flock::CleanUp(AllFlocks);
         auto EndTime = std::chrono::system_clock::now();
         std::chrono::duration<double> ElapsedTime = EndTime - StartTime;
+        // save tracer data
+        Tracer::AddTickT(ElapsedTime.count());
         return ElapsedTime.count(); // return wall clock time diff
     }
 

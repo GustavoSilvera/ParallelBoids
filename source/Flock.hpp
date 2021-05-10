@@ -9,7 +9,7 @@
 
 class Flock
 {
-public:
+  public:
     Flock()
     {
         Params = GlobalParams.FlockParams;
@@ -25,6 +25,21 @@ public:
         Valid = (Size > 0);
     }
     size_t FlockID;
+
+    enum FlockOp // enumerate different flock operations
+    {
+        SenseAndPlanOp,
+        ActOp,
+        DelegateOp,
+        AssignToFlockOp
+    };
+
+    struct TIDStruct // which threads took care of which flock operations
+    {
+        int SenseAndPlan, Act, Delegate, AssignToFlock;
+    };
+    TIDStruct TIDs;
+
     bool Valid;
     Vec2D COM; // center of mass of this flock
     static FlockParamsStruct Params;
@@ -33,17 +48,17 @@ public:
 
     int Size() const;
 
-    void SenseAndPlan(const size_t ThreadID, const std::vector<Flock> &AllFlocks);
+    void SenseAndPlan(const int TID, const std::vector<Flock> &AllFlocks);
 
-    void Act(const double DeltaTime);
+    void Act(const int TID, const double DeltaTime);
 
-    void Delegate(const std::vector<Flock> &Flocks);
+    void Delegate(const int TID, const std::vector<Flock> &Flocks);
 
-    void AssignToFlock(const std::vector<Flock> &AllFlocks);
+    void AssignToFlock(const int TID, const std::vector<Flock> &AllFlocks);
 
     void Recruit(Boid &B, Flock &BsFlock);
 
-    std::vector<const Flock*> NearestFlocks(const std::vector<Flock> &AllFlocks) const;
+    std::vector<const Flock *> NearestFlocks(const std::vector<Flock> &AllFlocks) const;
 
     void Draw(Image &I) const;
 

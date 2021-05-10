@@ -11,9 +11,8 @@ size_t Boid::GetFlockID() const
     return FlockID;
 }
 
-void Boid::SenseAndPlan(const std::vector<Flock> &Flocks, const int tID)
+void Boid::SenseAndPlan(const std::vector<Flock> &Flocks)
 {
-    ThreadID = tID;
     // reset current force factors
     a1 = Vec2D(0, 0);
     a2 = Vec2D(0, 0);
@@ -90,7 +89,8 @@ void Boid::Draw(Image &I) const
     Colour C(255, 255, 255);
     if (Params.ColourByThread)
     {
-        C = IDColours[ThreadID % IDColours.size()];
+        /// TODO: fix
+        C = IDColours[FlockID % IDColours.size()];
     }
     else
     {

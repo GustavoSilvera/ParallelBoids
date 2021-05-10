@@ -1,7 +1,6 @@
 #include "Flock.hpp"
 #include <algorithm>
 #include <cassert>
-#include <omp.h> // OpenMP
 
 // declaring static variables
 FlockParamsStruct Flock::Params;
@@ -13,19 +12,21 @@ int Flock::Size() const
     return S;
 }
 
-void Flock::SenseAndPlan(const size_t ThreadID, const std::vector<Flock> &AllFlocks)
+void Flock::SenseAndPlan(const int TID, const std::vector<Flock> &AllFlocks)
 {
     assert(Valid); // make sure this flock is valid
+    TIDs.SenseAndPlan = TID;
     for (Boid &B : Neighbourhood)
     {
-        B.SenseAndPlan(AllFlocks, ThreadID);
+        B.SenseAndPlan(AllFlocks);
     }
 }
 
-void Flock::Act(const double DeltaTime)
+void Flock::Act(const int TID, const double DeltaTime)
 {
     // all boids advance one timestep, can be done asynrhconously bc indep
     assert(Valid); // make sure this flock is valid
+    TIDs.Act = TID;
     COM = Vec2D(0, 0);
     for (size_t i = 0; i < Neighbourhood.size(); i++)
     {
@@ -36,10 +37,10 @@ void Flock::Act(const double DeltaTime)
     COM /= Neighbourhood.size(); // we know Neighbourhood.size() > 0 bc Valid
 }
 
-void Flock::Delegate(const std::vector<Flock> &AllFlocks)
+void Flock::Delegate(const int TID, const std::vector<Flock> &AllFlocks)
 {
-
     assert(Valid); // make sure this flock is valid
+    TIDs.Delegate = TID;
     // update flock decisions for local neighbourhood based off nearby flocks
     // can also maybe get "top 5 closest"
     const std::vector<const Flock *> NearbyFlocks = NearestFlocks(AllFlocks);
@@ -72,7 +73,7 @@ void Flock::Delegate(const std::vector<Flock> &AllFlocks)
                     {
                         Emigrants[F->FlockID].push_back(B);
                         Emigrants[F->FlockID].back().FlockID = F->FlockID; // update latest bucket's FiD
-                        Emigrated = true;                                  // indicate that this boid is part of the emigration bucket
+                        Emigrated = true; // indicate that this boid is part of the emigration bucket
                     }
                     break; // don't need to check the rest bc they are all in the same flock
                     // ie. as soon as one member of their flock satisfies our condition, we just say ok
@@ -103,9 +104,10 @@ void Flock::Delegate(const std::vector<Flock> &AllFlocks)
 #endif
 }
 
-void Flock::AssignToFlock(const std::vector<Flock> &AllFlocks)
+void Flock::AssignToFlock(const int TID, const std::vector<Flock> &AllFlocks)
 {
     assert(Valid);
+    TIDs.AssignToFlock = TID;
     if (AllFlocks.size() > 1) // if this is the last flock, do nothing
     {
         Neighbourhood.clear(); // clear my local neighbourhood
@@ -126,6 +128,7 @@ void Flock::AssignToFlock(const std::vector<Flock> &AllFlocks)
 
 void Flock::Recruit(Boid &B, Flock &BsFlock)
 {
+    /// NOTE: this is depracated
     assert(Valid);
     const size_t TheirFlockID = B.GetFlockID();
     if (TheirFlockID == FlockID || Size() > Params.MaxSize)
