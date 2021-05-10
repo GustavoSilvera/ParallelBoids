@@ -29,7 +29,7 @@ class Simulator
             I.Init();
         }
     }
-    SimulatorParamsStruct Params;
+    static SimulatorParamsStruct Params;
     std::vector<Flock> AllFlocks;
     std::vector<int> FlockSizes;
     Image I;
@@ -40,6 +40,7 @@ class Simulator
         for (size_t i = 0; i < Params.NumIterations; i++)
         {
             ElapsedTime += Tick();
+            std::cout << "Tick: " << i << "\r" << std::flush; // carriage return, no newline
         }
         std::cout << "Finished simulation! Took " << ElapsedTime << "s" << std::endl;
     }
@@ -75,18 +76,23 @@ class Simulator
         {
             AllFlocks[i].Act(Params.DeltaTime);
         }
-#pragma omp parallel for num_threads(Params.NumThreads) schedule(static)
-        for (size_t i = 0; i < AllFlocks.size(); i++)
+        // if we don't parallelize across flocks, then every boid will remain in
+        // their initial (singleton) flock
+        if (Params.ParallelizeAcrossFlocks)
         {
-            AllFlocks[i].Delegate(AllFlocks);
-        }
 #pragma omp parallel for num_threads(Params.NumThreads) schedule(static)
-        for (size_t i = 0; i < AllFlocks.size(); i++)
-        {
-            AllFlocks[i].AssignToFlock(AllFlocks);
+            for (size_t i = 0; i < AllFlocks.size(); i++)
+            {
+                AllFlocks[i].Delegate(AllFlocks);
+            }
+#pragma omp parallel for num_threads(Params.NumThreads) schedule(static)
+            for (size_t i = 0; i < AllFlocks.size(); i++)
+            {
+                AllFlocks[i].AssignToFlock(AllFlocks);
+            }
+            // remove empty (invalid) flocks
+            Flock::CleanUp(AllFlocks);
         }
-        // remove empty (invalid) flocks
-        Flock::CleanUp(AllFlocks);
         auto EndTime = std::chrono::system_clock::now();
         std::chrono::duration<double> ElapsedTime = EndTime - StartTime;
         return ElapsedTime.count(); // return wall clock time diff
@@ -106,6 +112,11 @@ class Simulator
     }
 };
 
+// declaring static variables
+SimulatorParamsStruct Simulator::Params;
+ImageParamsStruct Image::Params;
+
+// global params struct
 ParamsStruct GlobalParams;
 
 int main()

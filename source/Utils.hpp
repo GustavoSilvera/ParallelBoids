@@ -41,7 +41,7 @@ struct SimulatorParamsStruct
 {
     size_t NumBoids, NumThreads, NumIterations;
     double DeltaTime;
-    bool RenderingMovie;
+    bool ParallelizeAcrossFlocks, RenderingMovie;
 };
 
 struct FlockParamsStruct
@@ -116,6 +116,8 @@ inline void ParseParams(const std::string &FilePath)
             GlobalParams.ImageParams.WindowY = std::stoi(ParamValue);
         else if (!ParamName.compare("render"))
             GlobalParams.SimulatorParams.RenderingMovie = stob(ParamValue);
+        else if (!ParamName.compare("par_flocks"))
+            GlobalParams.SimulatorParams.ParallelizeAcrossFlocks = stob(ParamValue);
         else if (!ParamName.compare("colour_mode"))
             GlobalParams.BoidParams.ColourByThread = stob(ParamValue);
         else if (!ParamName.compare("max_size"))

@@ -54,7 +54,7 @@ class Image
         Data = std::vector<Colour>(Params.WindowX * Params.WindowY);
     }
 
-    ImageParamsStruct Params;
+    static ImageParamsStruct Params;
     std::vector<Colour> Data;
     size_t NumExported = 0;
     size_t NumLeading0s = 4; // max 9999 frames
@@ -244,8 +244,10 @@ class Image
             Img << char(RGB.R) << char(RGB.G) << char(RGB.B);
         }
         Img.close();
-        NumExported++;                                                       // exported a new file
-        std::cout << "Wrote image file: " << Filename << "\r" << std::flush; // carriage return, no newline
+        NumExported++; // exported a new file
+        bool PrintLog = false;
+        if (PrintLog)
+            std::cout << "Wrote image file: " << Filename << "\r" << std::flush; // carriage return, no newline
     }
 };
 

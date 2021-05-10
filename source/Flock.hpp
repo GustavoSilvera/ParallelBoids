@@ -27,7 +27,7 @@ class Flock
     size_t FlockID;
     bool Valid;
     Vec2D COM; // center of mass of this flock
-    FlockParamsStruct Params;
+    static FlockParamsStruct Params;
     std::vector<Boid> Neighbourhood;
     std::unordered_map<size_t, std::vector<Boid>> Emigrants; // buckets where the delegates go
 

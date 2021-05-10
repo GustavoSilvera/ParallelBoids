@@ -2,8 +2,9 @@
 #include "Flock.hpp"
 #include <omp.h>
 
-// declaring NumBoids for all boids (static)
+// declaring static variables
 size_t Boid::NumBoids;
+BoidParamsStruct Boid::Params;
 
 size_t Boid::GetFlockID() const
 {

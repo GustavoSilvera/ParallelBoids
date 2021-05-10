@@ -43,7 +43,7 @@ class Boid
     static size_t NumBoids; // one (shared) for ALL boids
     Vec2D Position, Velocity, Acceleration;
     Vec2D a1, a2, a3;
-    BoidParamsStruct Params;
+    static BoidParamsStruct Params;
     // Flock *FlockPtr;
     size_t FlockID, BoidID, ThreadID;
     size_t MaxW = GlobalParams.ImageParams.WindowX - 1;

@@ -3,6 +3,9 @@
 #include <cassert>
 #include <omp.h> // OpenMP
 
+// declaring static variables
+FlockParamsStruct Flock::Params;
+
 int Flock::Size() const
 {
     int S = Neighbourhood.size();
