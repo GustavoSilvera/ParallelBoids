@@ -81,7 +81,7 @@ class Simulator
 #pragma omp for schedule(static)
             for (size_t i = 0; i < AllFlocks.size(); i++)
             {
-                AllFlocks[i].Act(omp_get_thread_num(), Params.DeltaTime);
+                AllFlocks[i].Act(Params.DeltaTime);
             }
             // if we don't parallelize across flocks, then every boid will remain in
             // their initial (singleton) flock

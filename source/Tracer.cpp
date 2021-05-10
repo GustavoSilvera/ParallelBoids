@@ -40,25 +40,6 @@ void Tracer::SaveFlockMatrix(const std::vector<Flock> &AllFlocks)
     }
 }
 
-void Tracer::AddWrite(const size_t F_Requestor, const size_t F_Holder, const Flock::FlockOp F)
-{
-    Tracer *T = Instance();
-    assert(T->CommunicationMatrix.size() > 0);
-    assert(0 <= F_Requestor && F_Requestor <= T->CommunicationMatrix.size());
-    assert(0 <= F_Holder && F_Holder <= T->CommunicationMatrix[0].size());
-    switch (F)
-    {
-    case Flock::SenseAndPlanOp:
-        T->CommunicationMatrix[F_Requestor][F_Holder].SenseAndPlan.Writes++;
-    case Flock::ActOp:
-        T->CommunicationMatrix[F_Requestor][F_Holder].Act.Writes++;
-    case Flock::DelegateOp:
-        T->CommunicationMatrix[F_Requestor][F_Holder].Delegate.Writes++;
-    case Flock::AssignToFlockOp:
-        T->CommunicationMatrix[F_Requestor][F_Holder].AssignToFlock.Writes++;
-    }
-}
-
 void Tracer::AddRead(const size_t F_Requestor, const size_t F_Holder, const Flock::FlockOp F)
 {
     Tracer *T = Instance();
@@ -68,12 +49,13 @@ void Tracer::AddRead(const size_t F_Requestor, const size_t F_Holder, const Floc
     switch (F)
     {
     case Flock::SenseAndPlanOp:
+#pragma omp atomic
         T->CommunicationMatrix[F_Requestor][F_Holder].SenseAndPlan.Reads++;
-    case Flock::ActOp:
-        T->CommunicationMatrix[F_Requestor][F_Holder].Act.Reads++;
     case Flock::DelegateOp:
+#pragma omp atomic
         T->CommunicationMatrix[F_Requestor][F_Holder].Delegate.Reads++;
     case Flock::AssignToFlockOp:
+#pragma omp atomic
         T->CommunicationMatrix[F_Requestor][F_Holder].AssignToFlock.Reads++;
     }
 }
@@ -88,30 +70,14 @@ void Tracer::AddReads(const size_t T_Requestor, const size_t T_Holder, const siz
     T->MemoryOpMatrix[T_Requestor][T_Holder].Reads += Amnt;
 }
 
-void Tracer::AddWrites(const size_t T_Requestor, const size_t T_Holder, const size_t Amnt = 1)
-{
-    Tracer *T = Instance();
-    assert(T->MemoryOpMatrix.size() == Tracer::Params.NumThreads);
-    assert(T->MemoryOpMatrix[0].size() == Tracer::Params.NumThreads);
-    assert(0 <= T_Requestor && T_Requestor <= T->MemoryOpMatrix.size());
-    assert(0 <= T_Holder && T_Holder <= T->MemoryOpMatrix[0].size());
-    T->MemoryOpMatrix[T_Requestor][T_Holder].Writes += Amnt;
-}
-
 void Tracer::AddFlockOps(const Tracer::FlockOps &FO)
 {
     // sense & plan
     AddReads(FO.RequestorTIDs.SenseAndPlan, FO.HolderTIDs.SenseAndPlan, FO.SenseAndPlan.Reads);
-    AddWrites(FO.RequestorTIDs.SenseAndPlan, FO.HolderTIDs.SenseAndPlan, FO.SenseAndPlan.Writes);
-    // act
-    AddReads(FO.RequestorTIDs.Act, FO.HolderTIDs.Act, FO.Act.Reads);
-    AddWrites(FO.RequestorTIDs.Act, FO.HolderTIDs.Act, FO.Act.Writes);
     // delegate
     AddReads(FO.RequestorTIDs.Delegate, FO.HolderTIDs.Delegate, FO.Delegate.Reads);
-    AddWrites(FO.RequestorTIDs.Delegate, FO.HolderTIDs.Delegate, FO.Delegate.Writes);
     // assign to flock
     AddReads(FO.RequestorTIDs.AssignToFlock, FO.HolderTIDs.AssignToFlock, FO.AssignToFlock.Reads);
-    AddWrites(FO.RequestorTIDs.AssignToFlock, FO.HolderTIDs.AssignToFlock, FO.AssignToFlock.Writes);
 }
 
 void Tracer::AddTickT(const double ElapsedTime)
@@ -126,12 +92,12 @@ void Tracer::Dump()
     std::cout << "Comms Matrix:" << std::endl;
     for (const std::vector<MemoryOps> &MemoryRow : T->MemoryOpMatrix)
     {
-        std::cout << "{ ";
+        std::cout << "[ ";
         for (const MemoryOps &M : MemoryRow)
         {
-            std::cout << " R:" << M.Reads /*<< " W:" << M.Writes*/ << " |";
+            std::cout << M.Reads << ", ";
         }
-        std::cout << "}" << std::endl;
+        std::cout << "]" << std::endl;
     }
     std::cout << "Tick Timings" << std::endl << "[";
     for (const double t : T->TickTimes)

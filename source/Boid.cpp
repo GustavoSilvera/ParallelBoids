@@ -26,9 +26,6 @@ void Boid::SenseAndPlan(const std::vector<Flock> &Flocks)
     // each point is a 'set' of boids, then we can quickly index to spacially local boids
     for (const Flock &F : Flocks)
     {
-        // add to the tracer
-        Tracer::AddRead(GetFlockID(), F.FlockID, Flock::SenseAndPlanOp);
-
         /// TODO: find the nearest boid and determine who else to look for
         for (const Boid &B : F.Neighbourhood)
         {
@@ -47,6 +44,9 @@ void Boid::SenseAndPlan(const std::vector<Flock> &Flocks)
 
 void Boid::Plan(const Boid &B, Vec2D &RelativeCOM, Vec2D &AvgVel, Vec2D &SeparationDisp, size_t &NumCloseby) const
 {
+    // add to the tracer
+    Tracer::AddRead(GetFlockID(), B.GetFlockID(), Flock::SenseAndPlanOp);
+
     if (B.BoidID == BoidID)
         return; // don't plan with self
 
@@ -76,8 +76,6 @@ void Boid::Act(const double DeltaTime)
 
 void Boid::CollisionCheck(Boid &Neighbour)
 {
-    // keep track of this in traces
-    Tracer::AddRead(GetFlockID(), Neighbour.GetFlockID(), Flock::ActOp);
     /// TODO: fix the tracking for high-tick timings
     if (Neighbour.BoidID != BoidID &&                                       // not self
         (Neighbour.Position - Position).SizeSqr() < sqr(2 * Params.Radius)) // only physical collision

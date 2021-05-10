@@ -29,14 +29,13 @@ class Flock
     enum FlockOp // enumerate different flock operations
     {
         SenseAndPlanOp,
-        ActOp,
         DelegateOp,
         AssignToFlockOp
     };
 
     struct TIDStruct // which threads took care of which flock operations
     {
-        int SenseAndPlan, Act, Delegate, AssignToFlock;
+        int SenseAndPlan, Delegate, AssignToFlock;
     };
     TIDStruct TIDs;
 
@@ -50,7 +49,7 @@ class Flock
 
     void SenseAndPlan(const int TID, const std::vector<Flock> &AllFlocks);
 
-    void Act(const int TID, const double DeltaTime);
+    void Act(const double DeltaTime);
 
     void Delegate(const int TID, const std::vector<Flock> &Flocks);
 

@@ -12,7 +12,7 @@ class Tracer
     static void InitFlockMatrix(const size_t NumFlocks);
     static void SaveFlockMatrix(const std::vector<Flock> &AllFlocks);
     // incrementors for reads/writes
-    static void AddWrite(const size_t F_Requestor, const size_t F_Holder, const Flock::FlockOp F);
+    // static void AddWrite(const size_t F_Requestor, const size_t F_Holder, const Flock::FlockOp F);
     static void AddRead(const size_t F_Requestor, const size_t F_Holder, const Flock::FlockOp F);
     // incrementors for per-frame tick time
     static void AddTickT(const double ElapsedTime);
@@ -21,7 +21,7 @@ class Tracer
 
   private:
     static void AddReads(const size_t T_Requestor, const size_t T_Holder, const size_t Amnt);
-    static void AddWrites(const size_t T_Requestor, const size_t T_Holder, const size_t Amnt);
+    // static void AddWrites(const size_t T_Requestor, const size_t T_Holder, const size_t Amnt);
     Tracer(const size_t NumThreads) : MemoryOpMatrix(NumThreads, std::vector<MemoryOps>(NumThreads))
     {
     }
@@ -37,14 +37,13 @@ class Tracer
     struct MemoryOps
     {
         size_t Reads = 0;
-        size_t Writes = 0;
+        // size_t Writes = 0;
     };
     std::vector<std::vector<MemoryOps>> MemoryOpMatrix;
 
     struct FlockOps
     {
         MemoryOps SenseAndPlan;
-        MemoryOps Act;
         MemoryOps Delegate;
         MemoryOps AssignToFlock;
         Flock::TIDStruct RequestorTIDs, HolderTIDs;
