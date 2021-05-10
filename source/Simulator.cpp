@@ -67,33 +67,39 @@ public:
         }
         assert(Params.NumBoids == BoidCount);
 #endif
-#pragma omp parallel for num_threads(Params.NumThreads) schedule(static)
-        for (size_t i = 0; i < AllFlocks.size(); i++)
+#pragma omp parallel num_threads(Params.NumThreads) // spawns threads
         {
-            AllFlocks[i].SenseAndPlan(omp_get_thread_num(), AllFlocks);
-        }
-#pragma omp parallel for num_threads(Params.NumThreads) schedule(static)
-        for (size_t i = 0; i < AllFlocks.size(); i++)
-        {
-            AllFlocks[i].Act(Params.DeltaTime);
-        }
-        // if we don't parallelize across flocks, then every boid will remain in
-        // their initial (singleton) flock
-        if (Params.ParallelizeAcrossFlocks)
-        {
-#pragma omp parallel for num_threads(Params.NumThreads) schedule(static)
+#pragma omp for schedule(static)
             for (size_t i = 0; i < AllFlocks.size(); i++)
             {
-                AllFlocks[i].Delegate(AllFlocks);
+                AllFlocks[i].SenseAndPlan(omp_get_thread_num(), AllFlocks);
             }
-#pragma omp parallel for num_threads(Params.NumThreads) schedule(static)
+#pragma omp barrier
+#pragma omp for schedule(static)
             for (size_t i = 0; i < AllFlocks.size(); i++)
             {
-                AllFlocks[i].AssignToFlock(AllFlocks);
+                AllFlocks[i].Act(Params.DeltaTime);
             }
-            // remove empty (invalid) flocks
-            Flock::CleanUp(AllFlocks);
+            // if we don't parallelize across flocks, then every boid will remain in
+            // their initial (singleton) flock
+            if (Params.ParallelizeAcrossFlocks)
+            {
+#pragma omp barrier
+#pragma omp for schedule(static)
+                for (size_t i = 0; i < AllFlocks.size(); i++)
+                {
+                    AllFlocks[i].Delegate(AllFlocks);
+                }
+#pragma omp barrier
+#pragma omp for schedule(static)
+                for (size_t i = 0; i < AllFlocks.size(); i++)
+                {
+                    AllFlocks[i].AssignToFlock(AllFlocks);
+                }
+            }
         }
+        // remove empty (invalid) flocks
+        Flock::CleanUp(AllFlocks);
         auto EndTime = std::chrono::system_clock::now();
         std::chrono::duration<double> ElapsedTime = EndTime - StartTime;
         return ElapsedTime.count(); // return wall clock time diff
@@ -127,10 +133,11 @@ int main()
     ParseParams("params/params.ini");
     Simulator Sim;
     Sim.Simulate();
+    // Dump all tracer data
+    Tracer::Dump();
     return 0;
 }
 
-/// NOTE: resources:
 /// PSEUDOCODE: http://www.vergenet.net/~conrad/boids/pseudocode.html
 /// OVERVIEW: https://cs.stanford.edu/people/eroberts/courses/soco/projects/2008-09/modeling-natural-systems/boids.html
 /// EXAMPLE: https://eater.net/boids

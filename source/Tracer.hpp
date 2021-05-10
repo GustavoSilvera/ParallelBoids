@@ -10,15 +10,17 @@ class Tracer
 public:
     static void AddRead(const size_t P_Requestor, const size_t P_Holder);
     static void AddWrite(const size_t P_Requestor, const size_t P_Holder);
+    static void Dump();
 
 private:
     Tracer(const size_t NumThreads) : CommunicationMatrix(NumThreads, std::vector<TraceData>(NumThreads))
     {
+        Params = GlobalParams.TracerParams;
     }
     static Tracer *Instance()
     {
         /// singleton class
-        Params = GlobalParams.TracerParams;
+        // only initializes static T the FIRST time
         static Tracer *T = new Tracer(Params.NumThreads);
         return T;
     }
