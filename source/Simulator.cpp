@@ -8,7 +8,7 @@
 
 class Simulator
 {
-  public:
+public:
     Simulator()
     {
         Params = GlobalParams.SimulatorParams;

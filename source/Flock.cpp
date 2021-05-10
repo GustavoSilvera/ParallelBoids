@@ -42,8 +42,8 @@ void Flock::Delegate(const std::vector<Flock> &AllFlocks)
     assert(Valid); // make sure this flock is valid
     // update flock decisions for local neighbourhood based off nearby flocks
     // can also maybe get "top 5 closest"
-    const Flock &F = *(NearestFlockId(AllFlocks));
-    if (F.FlockID == FlockID)
+    const std::vector<const Flock *> NearbyFlocks = NearestFlocks(AllFlocks);
+    if (NearbyFlocks.size() == 0)
     {
         std::cout << "No more flocks!" << std::endl;
         return;
@@ -51,29 +51,38 @@ void Flock::Delegate(const std::vector<Flock> &AllFlocks)
 
     // clear buckets from last Delegation
     Emigrants.clear(); // if not done first, may get double counting later
+
     // Look through our neighbourhood
     for (size_t i = 0; i < Neighbourhood.size(); i++)
     {
         Boid &B = Neighbourhood[i];
-        bool Emigrated = false;
-        for (const Boid &FB : F.Neighbourhood)
+        bool Emigrated = false; // whether or not this boid is leaving the flock
+        for (const Flock *F : NearbyFlocks)
         {
-            /// NOTE: can do cool stuff like if the dist to their flock's COM is less
-            // than the distance to this own flock's COM
-            if (B.DistanceLT(FB, B.Params.CollisionRadius))
+            for (const Boid &Peer : F->Neighbourhood)
             {
-                /// NOTE: this is a very simple rule... only checking if
-                // their flock is larger/eq, then I send them over there
-                bool FlockRule = (Size() <= F.Size());
-                if (FlockRule)
+                /// NOTE: can do cool stuff like if the dist to their flock's COM is less
+                // than the distance to this own flock's COM
+                if (B.DistanceLT(Peer, B.Params.CollisionRadius))
                 {
-                    Emigrants[F.FlockID].push_back(B);
-                    Emigrants[F.FlockID].back().FlockID = F.FlockID; // update latest bucket's FiD
-                    Emigrated = true; // indicate that this boid is part of the emigration bucket
+                    /// NOTE: this is a very simple rule... only checking if
+                    // their flock is larger/eq, then I send them over there
+                    bool FlockRule = (Size() <= F->Size());
+                    if (FlockRule)
+                    {
+                        Emigrants[F->FlockID].push_back(B);
+                        Emigrants[F->FlockID].back().FlockID = F->FlockID; // update latest bucket's FiD
+                        Emigrated = true;                                  // indicate that this boid is part of the emigration bucket
+                    }
+                    break; // don't need to check the rest bc they are all in the same flock
+                    // ie. as soon as one member of their flock satisfies our condition, we just say ok
+                    // and delegate this boid (B) to join them
                 }
-                break; // don't need to check the rest bc they are all in the same flock
-                // ie. as soon as one member of their flock satisfies our condition, we just say ok
-                // and delegate this boid (B) to join them
+            }
+            if (Emigrated)
+            {
+                // Don't need to check any other flocks, already going to the nearest one
+                break;
             }
         }
         if (!Emigrated)
@@ -82,8 +91,16 @@ void Flock::Delegate(const std::vector<Flock> &AllFlocks)
             Emigrants[FlockID].push_back(B);
         }
     }
+#ifndef NDEBUG
     // No boid left behind
-    assert(Emigrants[FlockID].size() + Emigrants[F.FlockID].size() == Neighbourhood.size());
+    size_t NumLeaving = 0;
+    for (const Flock *F : NearbyFlocks)
+    {
+        NumLeaving += Emigrants[F->FlockID].size();
+    }
+    size_t NumStaying = Emigrants[FlockID].size();
+    assert(NumLeaving + NumStaying == Neighbourhood.size());
+#endif
 }
 
 void Flock::AssignToFlock(const std::vector<Flock> &AllFlocks)
@@ -128,23 +145,45 @@ void Flock::Recruit(Boid &B, Flock &BsFlock)
     OtherNeighbourhood.pop_back(); // destructive
 }
 
-const Flock *Flock::NearestFlockId(const std::vector<Flock> &AllFlocks) const
+std::vector<const Flock *> Flock::NearestFlocks(const std::vector<Flock> &AllFlocks) const
 {
-    // finds the flock physically nearest to this one
-    const Flock *NearestFlock = this; // self ptr
-    double NearestDist = 1e300;       // big num
-    for (const Flock &F : AllFlocks)
+    // finds the flocks physically nearest to this one
+    std::vector<const Flock *> NearbyFlocks;
+    /// TODO: figure out a better approach than this naive way
+    std::vector<size_t> NearbyIdxs;
+    for (size_t i = 0; i < Params.MaxNumComm; i++)
     {
-        if (!F.Valid)
-            continue; // ignore invalid flocks
-        double FDist = (COM - F.COM).Size();
-        if (FDist < NearestDist && F.FlockID != FlockID)
+        double NearestDist = 1e300; // big num
+        size_t NearestIdx = 0;
+        for (size_t j = 0; j < AllFlocks.size(); j++)
         {
-            NearestFlock = &F;
-            NearestDist = FDist;
+            const Flock &F = AllFlocks[j];
+            if (!F.Valid)
+                continue; // ignore invalid flocks
+            double FDist = (COM - F.COM).Size();
+            if (FDist < NearestDist && F.FlockID != FlockID)
+            {
+                // make sure this boid hasn't been selected before
+                bool AlreadyAdded = false;
+                for (const size_t ExistingNearbyIdx : NearbyIdxs)
+                {
+                    if (j == ExistingNearbyIdx)
+                    {
+                        AlreadyAdded = true;
+                        break;
+                    }
+                }
+                if (!AlreadyAdded)
+                {
+                    NearestDist = FDist;
+                    NearestIdx = j;
+                }
+            }
         }
+        NearbyFlocks.push_back(&AllFlocks[NearestIdx]);
+        NearbyIdxs.push_back(NearestIdx);
     }
-    return NearestFlock;
+    return NearbyFlocks;
 }
 
 void Flock::Draw(Image &I) const

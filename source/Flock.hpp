@@ -9,7 +9,7 @@
 
 class Flock
 {
-  public:
+public:
     Flock()
     {
         Params = GlobalParams.FlockParams;
@@ -43,7 +43,7 @@ class Flock
 
     void Recruit(Boid &B, Flock &BsFlock);
 
-    const Flock *NearestFlockId(const std::vector<Flock> &AllFlocks) const;
+    std::vector<const Flock*> NearestFlocks(const std::vector<Flock> &AllFlocks) const;
 
     void Draw(Image &I) const;
 

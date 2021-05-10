@@ -46,7 +46,7 @@ struct SimulatorParamsStruct
 
 struct FlockParamsStruct
 {
-    size_t MaxSize;
+    size_t MaxSize, MaxNumComm;
 };
 
 struct ImageParamsStruct
@@ -122,6 +122,8 @@ inline void ParseParams(const std::string &FilePath)
             GlobalParams.BoidParams.ColourByThread = stob(ParamValue);
         else if (!ParamName.compare("max_size"))
             GlobalParams.FlockParams.MaxSize = std::stoi(ParamValue);
+        else if (!ParamName.compare("max_flock_delegation"))
+            GlobalParams.FlockParams.MaxNumComm = std::stoi(ParamValue);
         else
             continue;
     }
