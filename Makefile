@@ -1,5 +1,5 @@
 TARGET = Simulator # name of binary
-OBJS += Simulator.o Flock.o Boid.o
+OBJS += Simulator.o Flock.o Boid.o Tracer.o # all the cpp obj files
 
 CXX = clang++
 CFLAGS = -std=c++11 -Wall -Werror -pedantic -pthread -fopenmp -g 

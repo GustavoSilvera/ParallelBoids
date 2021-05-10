@@ -1,10 +1,11 @@
-#include "Flock.hpp" // Flocks
-#include "Utils.hpp" // Params
-#include "Vec.hpp"   // Vec3D
-#include <chrono>    // timing threads
-#include <omp.h>     // OpenMP
-#include <string>    // cout
-#include <vector>    // std::vector
+#include "Flock.hpp"  // Flocks
+#include "Utils.hpp"  // Params
+#include "Vec.hpp"    // Vec3D
+#include "Tracer.hpp" // Tracer
+#include <chrono>     // timing threads
+#include <omp.h>      // OpenMP
+#include <string>     // cout
+#include <vector>     // std::vector
 
 class Simulator
 {
@@ -115,6 +116,7 @@ public:
 // declaring static variables
 SimulatorParamsStruct Simulator::Params;
 ImageParamsStruct Image::Params;
+TracerParamsStruct Tracer::Params;
 
 // global params struct
 ParamsStruct GlobalParams;

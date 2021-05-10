@@ -44,6 +44,11 @@ struct SimulatorParamsStruct
     bool ParallelizeAcrossFlocks, RenderingMovie;
 };
 
+struct TracerParamsStruct
+{
+    size_t NumThreads;
+};
+
 struct FlockParamsStruct
 {
     size_t MaxSize, MaxNumComm;
@@ -58,6 +63,7 @@ struct ParamsStruct
 {
     BoidParamsStruct BoidParams;
     SimulatorParamsStruct SimulatorParams;
+    TracerParamsStruct TracerParams;
     FlockParamsStruct FlockParams;
     ImageParamsStruct ImageParams;
 };
@@ -93,7 +99,10 @@ inline void ParseParams(const std::string &FilePath)
         else if (!ParamName.compare("num_iters"))
             GlobalParams.SimulatorParams.NumIterations = std::stoi(ParamValue);
         else if (!ParamName.compare("num_threads"))
+        {
             GlobalParams.SimulatorParams.NumThreads = std::stoi(ParamValue);
+            GlobalParams.TracerParams.NumThreads = std::stoi(ParamValue);
+        }
         else if (!ParamName.compare("timestep"))
             GlobalParams.SimulatorParams.DeltaTime = std::stod(ParamValue);
         else if (!ParamName.compare("boid_radius"))
