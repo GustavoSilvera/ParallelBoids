@@ -1,4 +1,5 @@
 #include "Tracer.hpp"
+#include <algorithm>
 #include <cassert>
 #include <iostream>
 
@@ -8,9 +9,9 @@ void Tracer::InitFlockMatrix(const size_t NumFlocks)
     for (size_t i = 0; i < NumFlocks; i++)
     {
         // allocate empty dictionary
-        T->CommunicationMatrix.push_back(std::unordered_map<size_t, FlockOps>());
+        T->CommunicationMatrix.push_back(std::vector<FlockOps>(NumFlocks));
     }
-    assert(T->CommunicationMatrix.size() == NumFlocks);
+    assert(T->CommunicationMatrix.size() * T->CommunicationMatrix[0].size() == sqr(NumFlocks));
 }
 
 void Tracer::SaveFlockMatrix(const std::vector<Flock> &AllFlocks)
@@ -20,12 +21,10 @@ void Tracer::SaveFlockMatrix(const std::vector<Flock> &AllFlocks)
     for (size_t FID = 0; FID < T->CommunicationMatrix.size(); FID++)
     {
         // for FID being the requestor flock ID
-        std::unordered_map<size_t, FlockOps> &CommRow = T->CommunicationMatrix[FID];
-        for (auto &Other : CommRow)
+        for (size_t FID2 = 0; FID2 < T->CommunicationMatrix[FID].size(); FID2++)
         {
             // for FID2 being the holder flock ID
-            const size_t FID2 = Other.first; // key is flock ID
-            FlockOps &FO = Other.second;     // value is FlockOp struct
+            FlockOps &FO = T->CommunicationMatrix[FID][FID2];
             /// NOTE: assigning thread ID's can only be done AFTER all ops have completed
             FO.RequestorTIDs = AllFlocks[FID].TIDs;
             FO.HolderTIDs = AllFlocks[FID2].TIDs;
@@ -33,18 +32,20 @@ void Tracer::SaveFlockMatrix(const std::vector<Flock> &AllFlocks)
         }
     }
     // clear matrix
+    const size_t NumFlocks = T->CommunicationMatrix.size(); // initial matrix size
     for (auto &Row : T->CommunicationMatrix)
     {
-        Row.clear();
+        // reset to all 0's
+        Row = std::vector<FlockOps>(NumFlocks);
     }
-    T->CommunicationMatrix.clear();
-    assert(T->CommunicationMatrix.size() == 0); // capacity is still large, fast allocation
 }
 
 void Tracer::AddWrite(const size_t F_Requestor, const size_t F_Holder, const Flock::FlockOp F)
 {
     Tracer *T = Instance();
     assert(T->CommunicationMatrix.size() > 0);
+    assert(0 <= F_Requestor && F_Requestor <= T->CommunicationMatrix.size());
+    assert(0 <= F_Holder && F_Holder <= T->CommunicationMatrix[0].size());
     switch (F)
     {
     case Flock::SenseAndPlanOp:
@@ -62,6 +63,8 @@ void Tracer::AddRead(const size_t F_Requestor, const size_t F_Holder, const Floc
 {
     Tracer *T = Instance();
     assert(T->CommunicationMatrix.size() > 0);
+    assert(0 <= F_Requestor && F_Requestor <= T->CommunicationMatrix.size());
+    assert(0 <= F_Holder && F_Holder <= T->CommunicationMatrix[0].size());
     switch (F)
     {
     case Flock::SenseAndPlanOp:
@@ -80,6 +83,8 @@ void Tracer::AddReads(const size_t T_Requestor, const size_t T_Holder, const siz
     Tracer *T = Instance();
     assert(T->MemoryOpMatrix.size() == Tracer::Params.NumThreads);
     assert(T->MemoryOpMatrix[0].size() == Tracer::Params.NumThreads);
+    assert(0 <= T_Requestor && T_Requestor <= T->MemoryOpMatrix.size());
+    assert(0 <= T_Holder && T_Holder <= T->MemoryOpMatrix[0].size());
     T->MemoryOpMatrix[T_Requestor][T_Holder].Reads += Amnt;
 }
 
@@ -88,6 +93,8 @@ void Tracer::AddWrites(const size_t T_Requestor, const size_t T_Holder, const si
     Tracer *T = Instance();
     assert(T->MemoryOpMatrix.size() == Tracer::Params.NumThreads);
     assert(T->MemoryOpMatrix[0].size() == Tracer::Params.NumThreads);
+    assert(0 <= T_Requestor && T_Requestor <= T->MemoryOpMatrix.size());
+    assert(0 <= T_Holder && T_Holder <= T->MemoryOpMatrix[0].size());
     T->MemoryOpMatrix[T_Requestor][T_Holder].Writes += Amnt;
 }
 
@@ -122,7 +129,7 @@ void Tracer::Dump()
         std::cout << "{ ";
         for (const MemoryOps &M : MemoryRow)
         {
-            std::cout << " R:" << M.Reads << " W:" << M.Writes << " |";
+            std::cout << " R:" << M.Reads /*<< " W:" << M.Writes*/ << " |";
         }
         std::cout << "}" << std::endl;
     }

@@ -1,5 +1,6 @@
 #include "Boid.hpp"
-#include "Flock.hpp"
+#include "Flock.hpp"  // To see all other neighbourhoods
+#include "Tracer.hpp" // to keep track of memory traces
 #include <omp.h>
 
 // declaring static variables
@@ -22,10 +23,12 @@ void Boid::SenseAndPlan(const std::vector<Flock> &Flocks)
     // begin sensing all other boids in all other flocks
 
     /// This can be optimized heavily, for instance, what if we used an NxN array where
-    // each point is a 'set' of boids, then we can quickly index to spacially local
-    // boids
+    // each point is a 'set' of boids, then we can quickly index to spacially local boids
     for (const Flock &F : Flocks)
     {
+        // add to the tracer
+        Tracer::AddRead(GetFlockID(), F.FlockID, Flock::SenseAndPlanOp);
+
         /// TODO: find the nearest boid and determine who else to look for
         for (const Boid &B : F.Neighbourhood)
         {
@@ -46,11 +49,9 @@ void Boid::Plan(const Boid &B, Vec2D &RelativeCOM, Vec2D &AvgVel, Vec2D &Separat
 {
     if (B.BoidID == BoidID)
         return; // don't plan with self
+
     if (DistanceGT(B, Params.NeighbourhoodRadius))
         return; // too far away: ignore
-
-    // race condition
-    // CollisionCheck(B); // resets position to avoid collisions
 
     // Makes local decisions based off the current neighbours
     /// NOTE: (all logic is done on the current velocity/positions which are read-only)
@@ -75,6 +76,8 @@ void Boid::Act(const double DeltaTime)
 
 void Boid::CollisionCheck(Boid &Neighbour)
 {
+    // keep track of this in traces
+    Tracer::AddRead(GetFlockID(), Neighbour.GetFlockID(), Flock::ActOp);
     /// TODO: fix the tracking for high-tick timings
     if (Neighbour.BoidID != BoidID &&                                       // not self
         (Neighbour.Position - Position).SizeSqr() < sqr(2 * Params.Radius)) // only physical collision

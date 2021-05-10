@@ -23,6 +23,9 @@ class Simulator
             AllFlocks.push_back(Flock(i, 1));
         }
 
+        // begin tracking which flocks communicate with which
+        Tracer::InitFlockMatrix(AllFlocks.size());
+
         // initialize image frame
         if (Params.RenderingMovie)
         {
@@ -67,8 +70,6 @@ class Simulator
         }
         assert(Params.NumBoids == BoidCount);
 #endif
-        // begin tracking which flocks communicate with which
-        Tracer::InitFlockMatrix(AllFlocks.size());
 #pragma omp parallel num_threads(Params.NumThreads) // spawns threads
         {
 #pragma omp for schedule(static)

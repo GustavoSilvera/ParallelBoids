@@ -1,4 +1,5 @@
 #include "Flock.hpp"
+#include "Tracer.hpp"
 #include <algorithm>
 #include <cassert>
 
@@ -60,8 +61,11 @@ void Flock::Delegate(const int TID, const std::vector<Flock> &AllFlocks)
         bool Emigrated = false; // whether or not this boid is leaving the flock
         for (const Flock *F : NearbyFlocks)
         {
+            Tracer::AddRead(FlockID, F->FlockID, Flock::DelegateOp);
             for (const Boid &Peer : F->Neighbourhood)
             {
+                /// TODO: should I keep track of the boid->boid communication in traces too?
+                // Tracer::AddRead(B.FlockID, Peer.FlockID, Flock::Delegate);
                 /// NOTE: can do cool stuff like if the dist to their flock's COM is less
                 // than the distance to this own flock's COM
                 if (B.DistanceLT(Peer, B.Params.CollisionRadius))
@@ -74,6 +78,8 @@ void Flock::Delegate(const int TID, const std::vector<Flock> &AllFlocks)
                         Emigrants[F->FlockID].push_back(B);
                         Emigrants[F->FlockID].back().FlockID = F->FlockID; // update latest bucket's FiD
                         Emigrated = true; // indicate that this boid is part of the emigration bucket
+                        // keep track of writing to self
+                        // Tracer::AddWrite(FlockID, FlockID, Flock::DelegateOp);
                     }
                     break; // don't need to check the rest bc they are all in the same flock
                     // ie. as soon as one member of their flock satisfies our condition, we just say ok
@@ -90,6 +96,8 @@ void Flock::Delegate(const int TID, const std::vector<Flock> &AllFlocks)
         {
             // stores all the boids (unchanged) into what will be this flock's new neighbourhood
             Emigrants[FlockID].push_back(B);
+            // Keep track of writing to self
+            // Tracer::AddWrite(FlockID, FlockID, Flock::DelegateOp);
         }
     }
 #ifndef NDEBUG
@@ -110,16 +118,21 @@ void Flock::AssignToFlock(const int TID, const std::vector<Flock> &AllFlocks)
     TIDs.AssignToFlock = TID;
     if (AllFlocks.size() > 1) // if this is the last flock, do nothing
     {
+        // write to self
+        Tracer::AddWrite(FlockID, FlockID, Flock::AssignToFlockOp);
         Neighbourhood.clear(); // clear my local neighbourhood
-
         for (const Flock &Other : AllFlocks)
         {
+            // Read another flock
+            Tracer::AddRead(FlockID, Other.FlockID, Flock::AssignToFlockOp);
             // O(1) dictionary accesses
             if (Other.Emigrants.find(FlockID) != Other.Emigrants.end())
             {
                 const std::vector<Boid> &Immigrants = Other.Emigrants.at(FlockID);
                 // don't need a critical section bc writing to local, reading from remote
                 Neighbourhood.insert(Neighbourhood.end(), Immigrants.begin(), Immigrants.end());
+                // writing to self
+                Tracer::AddWrite(FlockID, FlockID, Flock::AssignToFlockOp);
             }
         }
     }
@@ -161,6 +174,7 @@ std::vector<const Flock *> Flock::NearestFlocks(const std::vector<Flock> &AllFlo
         for (size_t j = 0; j < AllFlocks.size(); j++)
         {
             const Flock &F = AllFlocks[j];
+            // Tracer::AddRead(FlockID, F.FlockID, Flock::DelegateOp);
             if (!F.Valid)
                 continue; // ignore invalid flocks
             double FDist = (COM - F.COM).Size();

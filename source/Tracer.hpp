@@ -50,7 +50,7 @@ class Tracer
         Flock::TIDStruct RequestorTIDs, HolderTIDs;
     };
     static void AddFlockOps(const Tracer::FlockOps &FO);
-    std::vector<std::unordered_map<size_t, FlockOps>> CommunicationMatrix;
+    std::vector<std::vector<FlockOps>> CommunicationMatrix;
     std::vector<double> TickTimes;
 };
 
