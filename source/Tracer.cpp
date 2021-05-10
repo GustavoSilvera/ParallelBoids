@@ -7,23 +7,25 @@ void Tracer::InitFlockMatrix(const size_t NumFlocks)
     Tracer *T = Instance();
     for (size_t i = 0; i < NumFlocks; i++)
     {
-        T->CommunicationMatrix.push_back(std::vector<FlockOps>(NumFlocks));
+        // allocate empty dictionary
+        T->CommunicationMatrix.push_back(std::unordered_map<size_t, FlockOps>());
     }
-    assert(T->CommunicationMatrix.size() * T->CommunicationMatrix[0].size() == sqr(NumFlocks));
+    assert(T->CommunicationMatrix.size() == NumFlocks);
 }
 
 void Tracer::SaveFlockMatrix(const std::vector<Flock> &AllFlocks)
 {
     Tracer *T = Instance();
     assert(T->CommunicationMatrix.size() > 0);
-    assert(T->CommunicationMatrix.size() == T->CommunicationMatrix[0].size());
     for (size_t FID = 0; FID < T->CommunicationMatrix.size(); FID++)
     {
         // for FID being the requestor flock ID
-        for (size_t FID2 = 0; FID2 < T->CommunicationMatrix.size(); FID2++)
+        std::unordered_map<size_t, FlockOps> &CommRow = T->CommunicationMatrix[FID];
+        for (auto &Other : CommRow)
         {
             // for FID2 being the holder flock ID
-            FlockOps &FO = T->CommunicationMatrix[FID][FID2];
+            const size_t FID2 = Other.first; // key is flock ID
+            FlockOps &FO = Other.second;     // value is FlockOp struct
             /// NOTE: assigning thread ID's can only be done AFTER all ops have completed
             FO.RequestorTIDs = AllFlocks[FID].TIDs;
             FO.HolderTIDs = AllFlocks[FID2].TIDs;
@@ -31,7 +33,7 @@ void Tracer::SaveFlockMatrix(const std::vector<Flock> &AllFlocks)
         }
     }
     // clear matrix
-    for (std::vector<FlockOps> &Row : T->CommunicationMatrix)
+    for (auto &Row : T->CommunicationMatrix)
     {
         Row.clear();
     }
@@ -43,7 +45,6 @@ void Tracer::AddWrite(const size_t F_Requestor, const size_t F_Holder, const Flo
 {
     Tracer *T = Instance();
     assert(T->CommunicationMatrix.size() > 0);
-    assert(T->CommunicationMatrix.size() == T->CommunicationMatrix[0].size());
     switch (F)
     {
     case Flock::SenseAndPlanOp:
@@ -61,7 +62,6 @@ void Tracer::AddRead(const size_t F_Requestor, const size_t F_Holder, const Floc
 {
     Tracer *T = Instance();
     assert(T->CommunicationMatrix.size() > 0);
-    assert(T->CommunicationMatrix.size() == T->CommunicationMatrix[0].size());
     switch (F)
     {
     case Flock::SenseAndPlanOp:
