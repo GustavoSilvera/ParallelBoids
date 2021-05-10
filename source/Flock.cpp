@@ -19,7 +19,7 @@ void Flock::SenseAndPlan(const int TID, const std::vector<Flock> &AllFlocks)
     TIDs.SenseAndPlan = TID;
     for (Boid &B : Neighbourhood)
     {
-        B.SenseAndPlan(AllFlocks);
+        B.SenseAndPlan(this, AllFlocks);
     }
 }
 

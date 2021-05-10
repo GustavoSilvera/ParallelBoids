@@ -50,7 +50,7 @@ class Boid
 
     size_t GetFlockID() const;
 
-    void SenseAndPlan(const std::vector<Flock> &AllFlocks);
+    void SenseAndPlan(const Flock *F, const std::vector<Flock> &AllFlocks);
 
     void Plan(const Boid &B, Vec2D &RCOM, Vec2D &RCOV, Vec2D &Sep, size_t &NC) const;
 

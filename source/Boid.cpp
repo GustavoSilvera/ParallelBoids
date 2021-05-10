@@ -12,7 +12,7 @@ size_t Boid::GetFlockID() const
     return FlockID;
 }
 
-void Boid::SenseAndPlan(const std::vector<Flock> &Flocks)
+void Boid::SenseAndPlan(const Flock *FlockPtr, const std::vector<Flock> &Flocks)
 {
     // reset current force factors
     a1 = Vec2D(0, 0);
@@ -27,7 +27,7 @@ void Boid::SenseAndPlan(const std::vector<Flock> &Flocks)
     for (const Flock &F : Flocks)
     {
         /// TODO: find the nearest boid and determine who else to look for
-        if ((F.COM - Flocks[GetFlockID()].COM).Size() < 2 * Params.NeighbourhoodRadius)
+        if ((F.COM - FlockPtr->COM).Size() < 2 * Params.NeighbourhoodRadius)
         {
             for (const Boid &B : F.Neighbourhood)
             {
@@ -74,7 +74,7 @@ void Boid::Act(const double DeltaTime)
     Acceleration = a1 + a2 + a3; // + a4
     Velocity = (Velocity + Acceleration).LimitMagnitude(Params.MaxVel);
     Position += Velocity * DeltaTime;
-    EdgeWrap(); // optional
+    // EdgeWrap(); // optional
 }
 
 void Boid::CollisionCheck(Boid &Neighbour)
