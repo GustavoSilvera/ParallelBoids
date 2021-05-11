@@ -13,6 +13,8 @@ void NLayout::SetType(const Layout L)
 {
     assert(L == Local || L == Global);
     UsingLayout = L;
+    // reserve into vector to save on reallocating
+    BoidsGlobal.reserve(GlobalParams.SimulatorParams.NumBoids);
 }
 
 NLayout::Layout NLayout::GetType()
@@ -129,7 +131,6 @@ void NLayout::ClearLocal()
 
 void NLayout::Append(const std::vector<Boid> &Immigrants)
 {
-    assert(IsValid());
     if (UsingLayout == Local)
     {
         // don't need a critical section bc writing to local, reading from remote
@@ -156,7 +157,6 @@ void NLayout::Append(const std::vector<Boid> &Immigrants)
                 BoidsGlobalData.at(BoidsGlobal[Idx].FlockID).Remove(B); // remove old
                 BoidsGlobal[Idx].FlockID = FlockID;                     // assign new FlockID to Boid
                 BoidsGlobalData.at(FlockID).Add(B);                     // add new to my flock
-                assert(IsValid());
             }
         }
     }
