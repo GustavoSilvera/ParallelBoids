@@ -22,8 +22,8 @@ size_t Flock::Size() const
 
 void Flock::SenseAndPlan(const int TID, const std::vector<Flock> &AllFlocks)
 {
-    assert(IsValidFlock());                     // make sure this flock is valid
-    assert(NLayout::GetType() == NLayout::AoS); // only on AoS type
+    assert(IsValidFlock()); // make sure this flock is valid
+    // assert(NLayout::GetType() == NLayout::Local); // only on Local type
     TIDs.SenseAndPlan = TID;
     for (size_t i = 0; i < Size(); i++)
     {
@@ -34,8 +34,8 @@ void Flock::SenseAndPlan(const int TID, const std::vector<Flock> &AllFlocks)
 void Flock::Act(const double DeltaTime)
 {
     // all boids advance one timestep, can be done asynrhconously bc indep
-    assert(IsValidFlock());                     // make sure this flock is valid
-    assert(NLayout::GetType() == NLayout::AoS); // only on AoS type
+    assert(IsValidFlock()); // make sure this flock is valid
+    // assert(NLayout::GetType() == NLayout::Local); // only on Local type
     COM = Vec2D(0, 0);
     for (size_t i = 0; i < Size(); i++)
     {
@@ -117,7 +117,7 @@ void Flock::Delegate(const int TID, const std::vector<Flock> &AllFlocks)
         NumLeaving += Emigrants[F->FlockID].size();
     }
     size_t NumStaying = Emigrants[FlockID].size();
-    assert(NumLeaving + NumStaying == Neighbourhood.size());
+    assert(NumLeaving + NumStaying == Neighbourhood.Size(FlockID));
 #endif
 }
 

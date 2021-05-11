@@ -52,11 +52,11 @@ Boid *NLayout::operator[](const size_t Idx) const
     // but allow edits to the underlying boids afterwards
     if (UsingLayout == Local)
     {
-        assert(Idx < Size());
+        assert(Idx < BoidsLocal.size());
         return const_cast<Boid *>(&(BoidsLocal[Idx]));
     }
     assert(UsingLayout == Global);
-    assert(Idx < Size());
+    assert(Idx < BoidsGlobal.size());
     return const_cast<Boid *>(&(BoidsGlobal[Idx]));
 }
 
@@ -82,9 +82,12 @@ void NLayout::Append(const std::vector<Boid> &Immigrants)
         {
             const size_t Idx = B.BoidID;
             assert(Idx < BoidsGlobal.size());
+            assert(Idx < BoidsGlobalSizes.size());
 #pragma omp critical
             {
-                BoidsGlobal[Idx].FlockID = B.FlockID;
+                BoidsGlobalSizes[BoidsGlobal[Idx].FlockID]--; // removing from original FlockID
+                BoidsGlobal[Idx].FlockID = B.FlockID;         // assigning new flockID
+                BoidsGlobalSizes[B.FlockID]++;                // adding to new flockID
             }
         }
     }
