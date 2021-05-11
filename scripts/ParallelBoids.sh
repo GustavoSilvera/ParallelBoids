@@ -2,17 +2,22 @@
 
 # run the entire pipeline for generating a simulator movie
 
+# fail on any error
 set -e
 
-# don't need to remove old out directory
-# rm -rf Out/ || true
+# go to the ParallelBoids/ directory
 cd ..
 
+# make with 4 processors
 make -j4 -B --silent
 
+# ensure an Out directory is made before writing to it
 mkdir -p Out
 
+# main executable is in ParallelBoids/ directory
 ./Simulator
 
-./scripts/CreateMovie.sh
+# scripts should be run in scripts/
+cd scripts 
+./CreateMovie.sh
 
