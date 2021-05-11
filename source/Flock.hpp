@@ -1,6 +1,7 @@
 #ifndef FLOCK
 #define FLOCK
 
+#include "Boid.hpp"          // Boid
 #include "Image.hpp"         // Image (for rendering)
 #include "Neighbourhood.hpp" // Low level neighbourhood (SoA vs AoS)
 #include "Vec.hpp"           // Vec2D (for COM)
@@ -30,10 +31,10 @@ class Flock
         if (NLayout::GetType() == NLayout::Invalid)
         {
             // only done once, static vars
-            if (GlobalParams.FlockParams.UseSoA)
-                NLayout::SetType(NLayout::SoA);
+            if (GlobalParams.FlockParams.UseParFlocks)
+                NLayout::SetType(NLayout::Local);
             else
-                NLayout::SetType(NLayout::AoS);
+                NLayout::SetType(NLayout::Global);
         }
     }
 
@@ -56,7 +57,7 @@ class Flock
     Vec2D COM; // center of mass of this flock
     static FlockParamsStruct Params;
     NLayout Neighbourhood;
-    std::unordered_map<size_t, NLayout> Emigrants; // buckets where the delegates go
+    std::unordered_map<size_t, std::vector<Boid>> Emigrants; // buckets where the delegates go
 
     bool IsValidFlock() const;
 

@@ -27,8 +27,6 @@ void Flock::SenseAndPlan(const int TID, const std::vector<Flock> &AllFlocks)
     TIDs.SenseAndPlan = TID;
     for (size_t i = 0; i < Size(); i++)
     {
-        /// TODO: maybe instead something like: Neighbourhood.BoidAct(i, FlockID, this, AllFLocks)
-        // to be layout-agnostic
         Neighbourhood[i]->SenseAndPlan(this, AllFlocks);
     }
 }
@@ -65,29 +63,30 @@ void Flock::Delegate(const int TID, const std::vector<Flock> &AllFlocks)
     Emigrants.clear(); // if not done first, may get double counting later
 
     // Look through our neighbourhood
-    for (size_t i = 0; i < Neighbourhood.size(); i++)
+    for (size_t i = 0; i < Size(); i++)
     {
-        Boid &B = Neighbourhood[i];
+        Boid *B = Neighbourhood[i];
         bool Emigrated = false; // whether or not this boid is leaving the flock
         for (const Flock *F : NearbyFlocks)
         {
             Tracer::AddRead(FlockID, F->FlockID, Flock::DelegateOp);
-            for (const Boid &Peer : F->Neighbourhood)
+            for (size_t j = 0; j < F->Size(); j++)
             {
-                Tracer::AddRead(B.GetFlockID(), Peer.GetFlockID(), Flock::SenseAndPlanOp);
+                const Boid *Peer = F->Neighbourhood[j];
+                Tracer::AddRead(B->GetFlockID(), Peer->GetFlockID(), Flock::SenseAndPlanOp);
                 /// TODO: should I keep track of the boid->boid communication in traces too?
                 // Tracer::AddRead(B.FlockID, Peer.FlockID, Flock::Delegate);
                 /// NOTE: can do cool stuff like if the dist to their flock's COM is less
                 // than the distance to this own flock's COM
-                if (B.DistanceLT(Peer, B.Params.CollisionRadius) && F->Size() < F->Params.MaxSize)
+                if (B->DistanceLT((*Peer), B->Params.CollisionRadius) && F->Size() < F->Params.MaxSize)
                 {
                     /// NOTE: this is a very simple rule... only checking if
                     // their flock is larger/eq, then I send them over there
                     bool FlockRule = (Size() <= F->Size());
                     if (FlockRule)
                     {
-                        Emigrants[F->FlockID].push_back(B);
-                        Emigrants[F->FlockID].back().FlockID = F->FlockID; // update latest bucket's FiD
+                        Emigrants[F->FlockID].push_back((*B));              // dereference from Boid*
+                        Emigrants[F->FlockID].back()->FlockID = F->FlockID; // update latest bucket's FiD
                         Emigrated = true; // indicate that this boid is part of the emigration bucket
                     }
                     break; // don't need to check the rest bc they are all in the same flock
@@ -128,7 +127,7 @@ void Flock::AssignToFlock(const int TID, const std::vector<Flock> &AllFlocks)
     TIDs.AssignToFlock = TID;
     if (AllFlocks.size() > 1) // if this is the last flock, do nothing
     {
-        Neighbourhood.clear(); // clear my local neighbourhood
+        Neighbourhood.ClearLocal(); // clear my local neighbourhood
         for (const Flock &Other : AllFlocks)
         {
             // Tracer::AddRead(FlockID, Other.FlockID, Flock::AssignToFlockOp);
@@ -136,8 +135,8 @@ void Flock::AssignToFlock(const int TID, const std::vector<Flock> &AllFlocks)
             if (Other.Emigrants.find(FlockID) != Other.Emigrants.end())
             {
                 const std::vector<Boid> &Immigrants = Other.Emigrants.at(FlockID);
-                // don't need a critical section bc writing to local, reading from remote
-                Neighbourhood.insert(Neighbourhood.end(), Immigrants.begin(), Immigrants.end());
+                // may require critical section if using Global boids vector
+                Neighbourhood.Append(Immigrants);
             }
         }
     }
@@ -212,9 +211,10 @@ void Flock::Draw(Image &I) const
     assert(IsValidFlock());
 
     /// TODO: check if can-parallelize?
-    for (const Boid &B : Neighbourhood.GetBoids())
+    for (size_t i = 0; i < Size(); i++)
     {
-        B.Draw(I);
+        const Boid *B = Neighbourhood[i];
+        B->Draw(I);
     }
 }
 

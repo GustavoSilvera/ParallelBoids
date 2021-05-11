@@ -40,7 +40,7 @@ struct SimulatorParamsStruct
 {
     size_t NumBoids, NumThreads, NumIterations;
     double DeltaTime;
-    bool ParallelizeAcrossFlocks, RenderingMovie, UseSoA;
+    bool ParallelizeAcrossFlocks, RenderingMovie, UseParFlocks;
 };
 
 struct TracerParamsStruct
@@ -132,8 +132,8 @@ inline void ParseParams(const std::string &FilePath)
             GlobalParams.FlockParams.MaxSize = std::stoi(ParamValue);
         else if (!ParamName.compare("max_flock_delegation"))
             GlobalParams.FlockParams.MaxNumComm = std::stoi(ParamValue);
-        else if (!ParamName.compare("use_SoA"))
-            GlobalParams.FlockParams.UseSoA = stob(ParamValue);
+        else if (!ParamName.compare("use_par_flocks"))
+            GlobalParams.FlockParams.UseParFlocks = stob(ParamValue);
         else
             continue;
     }
