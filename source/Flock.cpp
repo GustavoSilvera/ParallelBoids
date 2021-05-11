@@ -25,9 +25,9 @@ void Flock::SenseAndPlan(const int TID, const std::vector<Flock> &AllFlocks)
     assert(IsValidFlock()); // make sure this flock is valid
     // assert(NLayout::GetType() == NLayout::Local); // only on Local type
     TIDs.SenseAndPlan = TID;
-    for (size_t i = 0; i < Size(); i++)
+    std::vector<Boid *> Boids = Neighbourhood.GetBoids();
+    for (Boid *B : Boids)
     {
-        Boid *B = Neighbourhood.GetBoidF(i);
         B->SenseAndPlan(this, AllFlocks);
     }
 }
@@ -38,9 +38,9 @@ void Flock::Act(const double DeltaTime)
     assert(IsValidFlock()); // make sure this flock is valid
     // assert(NLayout::GetType() == NLayout::Local); // only on Local type
     COM = Vec2D(0, 0);
-    for (size_t i = 0; i < Size(); i++)
+    std::vector<Boid *> Boids = Neighbourhood.GetBoids();
+    for (Boid *B : Boids)
     {
-        Boid *B = Neighbourhood.GetBoidF(i);
         B->Act(DeltaTime);
         COM += B->Position; // updates COM based off the most up-to-date boid positions
     }
@@ -64,16 +64,16 @@ void Flock::Delegate(const int TID, const std::vector<Flock> &AllFlocks)
     Emigrants.clear(); // if not done first, may get double counting later
 
     // Look through our neighbourhood
-    for (size_t i = 0; i < Size(); i++)
+    std::vector<Boid *> Boids = Neighbourhood.GetBoids();
+    for (const Boid *B : Boids)
     {
-        Boid *B = Neighbourhood.GetBoidF(i);
         bool Emigrated = false; // whether or not this boid is leaving the flock
         for (const Flock *F : NearbyFlocks)
         {
             Tracer::AddRead(FlockID, F->FlockID, Flock::DelegateOp);
-            for (size_t j = 0; j < F->Size(); j++)
+            std::vector<Boid *> FBoids = F->Neighbourhood.GetBoids();
+            for (const Boid *Peer : FBoids)
             {
-                const Boid *Peer = F->Neighbourhood.GetBoidF(j);
                 Tracer::AddRead(B->GetFlockID(), Peer->GetFlockID(), Flock::SenseAndPlanOp);
                 /// TODO: should I keep track of the boid->boid communication in traces too?
                 // Tracer::AddRead(B.FlockID, Peer.FlockID, Flock::Delegate);
@@ -212,9 +212,9 @@ void Flock::Draw(Image &I) const
     assert(IsValidFlock());
 
     /// TODO: check if can-parallelize?
-    for (size_t i = 0; i < Size(); i++)
+    std::vector<Boid *> Boids = Neighbourhood.GetBoids();
+    for (Boid *B : Boids)
     {
-        const Boid *B = Neighbourhood.GetBoidF(i);
         B->Draw(I);
     }
 }

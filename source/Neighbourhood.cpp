@@ -83,7 +83,6 @@ void NLayout::NewBoid(const size_t FID)
 
 size_t NLayout::Size() const
 {
-    assert(IsValid());
     if (UsingLayout == Local)
     {
         return BoidsLocal.size();
@@ -92,8 +91,35 @@ size_t NLayout::Size() const
     return BoidsGlobalData[FlockID].Size();
 }
 
+std::vector<Boid *> NLayout::GetBoids() const
+{
+    assert(IsValid());
+    if (UsingLayout == Local)
+    {
+        std::vector<Boid *> LocalFlock;
+        for (const Boid &B : BoidsLocal)
+        {
+            LocalFlock.push_back(const_cast<Boid *>(&B));
+        }
+        return LocalFlock;
+    }
+    assert(UsingLayout == Global);
+    std::vector<Boid *> GlobalFlock;
+    const FlockData &FD = BoidsGlobalData.at(FlockID);
+    for (auto It = FD.BoidIDs.begin(); It != FD.BoidIDs.end(); It++)
+    {
+        // add all the BoidsGlobal one time rather than one at a time
+        assert((*It) < BoidsGlobal.size());
+        const Boid &B = BoidsGlobal[*It];
+        GlobalFlock.push_back(const_cast<Boid *>(&B));
+    }
+    return GlobalFlock;
+}
+
 Boid *NLayout::GetBoidF(const size_t Idx) const
 {
+    /// WARNING: this is cheap O(1) for Local but expensive O(N) for global!!
+    // if you're looking for a bunch of boids, instead use GetBoids
     if (UsingLayout == Global)
     {
         // since Idx is local to the flock, we'll need to find the flock's local
@@ -122,9 +148,9 @@ Boid *NLayout::operator[](const size_t Idx) const
 
 void NLayout::ClearLocal()
 {
-    assert(IsValid());
     if (UsingLayout == Local)
     {
+        assert(IsValid());
         BoidsLocal.clear();
     }
 }
@@ -135,6 +161,7 @@ void NLayout::Append(const std::vector<Boid> &Immigrants)
     {
         // don't need a critical section bc writing to local, reading from remote
         BoidsLocal.insert(BoidsLocal.end(), Immigrants.begin(), Immigrants.end());
+        assert(IsValid());
     }
     else
     {
@@ -157,8 +184,8 @@ void NLayout::Append(const std::vector<Boid> &Immigrants)
                 BoidsGlobalData.at(BoidsGlobal[Idx].FlockID).Remove(B); // remove old
                 BoidsGlobal[Idx].FlockID = FlockID;                     // assign new FlockID to Boid
                 BoidsGlobalData.at(FlockID).Add(B);                     // add new to my flock
+                assert(IsValid());
             }
         }
     }
-    assert(IsValid());
 }

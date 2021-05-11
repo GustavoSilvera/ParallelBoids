@@ -29,11 +29,11 @@ void Boid::SenseAndPlan(const Flock *FlockPtr, const std::vector<Flock> &Flocks)
         /// TODO: find the nearest boid and determine who else to look for
         if ((F.COM - FlockPtr->COM).Size() < 2 * Params.NeighbourhoodRadius)
         {
-            for (size_t i = 0; i < F.Size(); i++)
+            std::vector<Boid *> Boids = F.Neighbourhood.GetBoids();
+            for (Boid *B : Boids)
             {
                 // begin planning for this boid for each boid that is sensed
-                const Boid *B = F.Neighbourhood.GetBoidF(i);
-                Plan(*B, RelCOM, RelCOV, Sep, NumCloseby);
+                Plan((*B), RelCOM, RelCOV, Sep, NumCloseby);
             }
         }
     }
