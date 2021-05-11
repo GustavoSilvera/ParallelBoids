@@ -1,7 +1,8 @@
 TARGET = Simulator # name of binary
 OBJS += Simulator.o Flock.o Boid.o Tracer.o # all the cpp obj files
 
-CXX = clang++
+CXX = g++
+# CXX = clang++
 CFLAGS = -std=c++11 -Wall -Werror -pedantic -pthread -fopenmp -g 
 CFLAGS += -O3 # optimization
 CFLAGS += -DNDEBUG # comment to enforce asserts

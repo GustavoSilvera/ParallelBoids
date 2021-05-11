@@ -10,7 +10,7 @@ bool Flock::IsValidFlock() const
 {
     if (!Valid)
         return false;
-    if (Size() < 0 || Size() > Params.MaxSize)
+    if (Size() < 0 || Size() > int(Params.MaxSize))
         return false;
     return true;
 }
@@ -75,7 +75,7 @@ void Flock::Delegate(const int TID, const std::vector<Flock> &AllFlocks)
                 // Tracer::AddRead(B.FlockID, Peer.FlockID, Flock::Delegate);
                 /// NOTE: can do cool stuff like if the dist to their flock's COM is less
                 // than the distance to this own flock's COM
-                if (B.DistanceLT(Peer, B.Params.CollisionRadius) && F->Size() < F->Params.MaxSize)
+                if (B.DistanceLT(Peer, B.Params.CollisionRadius) && F->Size() < int(F->Params.MaxSize))
                 {
                     /// NOTE: this is a very simple rule... only checking if
                     // their flock is larger/eq, then I send them over there
@@ -92,7 +92,7 @@ void Flock::Delegate(const int TID, const std::vector<Flock> &AllFlocks)
                 }
             }
 
-            /// TODO: Actually do need to check other flocks. Track best flock so far, and emigrate 
+            /// TODO: Actually do need to check other flocks. Track best flock so far, and emigrate
             //        to best flock.
             if (Emigrated)
             {
@@ -145,7 +145,7 @@ void Flock::Recruit(Boid &B, Flock &BsFlock)
     /// NOTE: this is depracated
     assert(IsValidFlock());
     const size_t TheirFlockID = B.GetFlockID();
-    if (TheirFlockID == FlockID || Size() > Params.MaxSize)
+    if (TheirFlockID == FlockID || Size() > int(Params.MaxSize))
     {
         // do nothing
         return;

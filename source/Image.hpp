@@ -110,9 +110,9 @@ class Image
     void Blank()
     {
         const size_t BorderSize = 0;
-        for (int i = 0; i < Params.WindowX; i++)
+        for (size_t i = 0; i < Params.WindowX; i++)
         {
-            for (int j = 0; j < Params.WindowY; j++)
+            for (size_t j = 0; j < Params.WindowY; j++)
             {
                 if (i < BorderSize || i > Params.WindowX - BorderSize || j < BorderSize ||
                     j > Params.WindowY - BorderSize)
