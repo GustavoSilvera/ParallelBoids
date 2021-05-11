@@ -68,8 +68,8 @@ class Image
     void SetPixel(const size_t X, const size_t Y, const Colour &C)
     {
         /// TODO: do we need to check bounds always? even with EdgeWrap?
-        bool WithinWidth = (0 <= X && X < Params.WindowX);
-        bool WithinHeight = (0 <= Y && Y < Params.WindowY);
+        bool WithinWidth = (X < Params.WindowX);
+        bool WithinHeight = (Y < Params.WindowY);
         if (WithinWidth && WithinHeight) // draw boid within bound (triangle)
         {
             SetData(X, Y, C);

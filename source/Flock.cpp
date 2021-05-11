@@ -91,6 +91,9 @@ void Flock::Delegate(const int TID, const std::vector<Flock> &AllFlocks)
                     // and delegate this boid (B) to join them
                 }
             }
+
+            /// TODO: Actually do need to check other flocks. Track best flock so far, and emigrate 
+            //        to best flock.
             if (Emigrated)
             {
                 // Don't need to check any other flocks, already going to the nearest one
@@ -215,6 +218,7 @@ void Flock::CleanUp(std::vector<Flock> &AllFlocks)
 {
     /// NOTE: this can probably be parallelized as well...
     // remove all empty (invalid) flocks
+    /// TODO: Implement this with 210-style filter for O(logn) span
     auto IsInvalid = [](const Flock &F) { return !F.Valid; };
     AllFlocks.erase(std::remove_if(AllFlocks.begin(), AllFlocks.end(), IsInvalid), AllFlocks.end());
 #ifndef NDEBUG

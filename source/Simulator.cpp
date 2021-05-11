@@ -51,12 +51,6 @@ class Simulator
 
     double Tick()
     {
-        if (Params.RenderingMovie)
-        {
-            // Rendering is not part of our problem
-            Render();
-        }
-
         // Run our actual problem (boid computation)
         auto StartTime = std::chrono::system_clock::now();
 
@@ -104,6 +98,13 @@ class Simulator
         std::chrono::duration<double> ElapsedTime = EndTime - StartTime;
         // save tracer data
         Tracer::AddTickT(ElapsedTime.count());
+
+        if (Params.RenderingMovie)
+        {
+            // Rendering is not part of our problem
+            Render();
+        }
+
         return ElapsedTime.count(); // return wall clock time diff
     }
 
