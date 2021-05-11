@@ -6,16 +6,23 @@
 // declaring static variables
 FlockParamsStruct Flock::Params;
 
+bool Flock::IsValidFlock() const
+{
+    if (!Valid)
+        return false;
+    if (Size() < 0 || Size() > Params.MaxSize)
+        return false;
+    return true;
+}
+
 int Flock::Size() const
 {
-    int S = Neighbourhood.size();
-    assert(S >= 0);
-    return S;
+    return Neighbourhood.size();
 }
 
 void Flock::SenseAndPlan(const int TID, const std::vector<Flock> &AllFlocks)
 {
-    assert(Valid); // make sure this flock is valid
+    assert(IsValidFlock()); // make sure this flock is valid
     TIDs.SenseAndPlan = TID;
     for (Boid &B : Neighbourhood)
     {
@@ -26,7 +33,7 @@ void Flock::SenseAndPlan(const int TID, const std::vector<Flock> &AllFlocks)
 void Flock::Act(const double DeltaTime)
 {
     // all boids advance one timestep, can be done asynrhconously bc indep
-    assert(Valid); // make sure this flock is valid
+    assert(IsValidFlock()); // make sure this flock is valid
     COM = Vec2D(0, 0);
     for (size_t i = 0; i < Neighbourhood.size(); i++)
     {
@@ -39,7 +46,7 @@ void Flock::Act(const double DeltaTime)
 
 void Flock::Delegate(const int TID, const std::vector<Flock> &AllFlocks)
 {
-    assert(Valid); // make sure this flock is valid
+    assert(IsValidFlock()); // make sure this flock is valid
     TIDs.Delegate = TID;
     // update flock decisions for local neighbourhood based off nearby flocks
     // can also maybe get "top 5 closest"
@@ -68,7 +75,7 @@ void Flock::Delegate(const int TID, const std::vector<Flock> &AllFlocks)
                 // Tracer::AddRead(B.FlockID, Peer.FlockID, Flock::Delegate);
                 /// NOTE: can do cool stuff like if the dist to their flock's COM is less
                 // than the distance to this own flock's COM
-                if (B.DistanceLT(Peer, B.Params.CollisionRadius))
+                if (B.DistanceLT(Peer, B.Params.CollisionRadius) && F->Size() < F->Params.MaxSize)
                 {
                     /// NOTE: this is a very simple rule... only checking if
                     // their flock is larger/eq, then I send them over there
@@ -110,7 +117,7 @@ void Flock::Delegate(const int TID, const std::vector<Flock> &AllFlocks)
 
 void Flock::AssignToFlock(const int TID, const std::vector<Flock> &AllFlocks)
 {
-    assert(Valid);
+    assert(IsValidFlock());
     TIDs.AssignToFlock = TID;
     if (AllFlocks.size() > 1) // if this is the last flock, do nothing
     {
@@ -133,7 +140,7 @@ void Flock::AssignToFlock(const int TID, const std::vector<Flock> &AllFlocks)
 void Flock::Recruit(Boid &B, Flock &BsFlock)
 {
     /// NOTE: this is depracated
-    assert(Valid);
+    assert(IsValidFlock());
     const size_t TheirFlockID = B.GetFlockID();
     if (TheirFlockID == FlockID || Size() > Params.MaxSize)
     {
@@ -165,8 +172,7 @@ std::vector<const Flock *> Flock::NearestFlocks(const std::vector<Flock> &AllFlo
         for (size_t j = 0; j < AllFlocks.size(); j++)
         {
             const Flock &F = AllFlocks[j];
-            // Tracer::AddRead(FlockID, F.FlockID, Flock::DelegateOp);
-            if (!F.Valid)
+            if (!F.IsValidFlock())
                 continue; // ignore invalid flocks
             double FDist = (COM - F.COM).Size();
             if (FDist < NearestDist && F.FlockID != FlockID)
@@ -196,7 +202,7 @@ std::vector<const Flock *> Flock::NearestFlocks(const std::vector<Flock> &AllFlo
 
 void Flock::Draw(Image &I) const
 {
-    assert(Valid);
+    assert(IsValidFlock());
 
     /// TODO: check if can-parallelize?
     for (const Boid &B : Neighbourhood)
@@ -209,15 +215,12 @@ void Flock::CleanUp(std::vector<Flock> &AllFlocks)
 {
     /// NOTE: this can probably be parallelized as well...
     // remove all empty (invalid) flocks
-    auto IsInvalid = [](const Flock &F) {
-        assert(F.Valid == (F.Size() > 0));
-        return !F.Valid;
-    };
+    auto IsInvalid = [](const Flock &F) { return !F.Valid; };
     AllFlocks.erase(std::remove_if(AllFlocks.begin(), AllFlocks.end(), IsInvalid), AllFlocks.end());
 #ifndef NDEBUG
     for (const Flock &A : AllFlocks)
     {
-        assert(A.Valid);
+        assert(A.IsValidFlock());
     }
 #endif
 }

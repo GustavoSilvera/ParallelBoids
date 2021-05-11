@@ -45,6 +45,8 @@ class Flock
     std::vector<Boid> Neighbourhood;
     std::unordered_map<size_t, std::vector<Boid>> Emigrants; // buckets where the delegates go
 
+    bool IsValidFlock() const;
+
     int Size() const;
 
     void SenseAndPlan(const int TID, const std::vector<Flock> &AllFlocks);
