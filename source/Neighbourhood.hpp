@@ -20,7 +20,6 @@ class NLayout // options bs local and global boid layout
     // for both layout types
     Boid *operator[](const size_t Idx) const;
     Boid *GetBoidF(const size_t Idx) const;
-    // Boid *GetBoid(const size_t Idx);
     // types for the layout
     enum Layout
     {
@@ -66,7 +65,6 @@ class NLayout // options bs local and global boid layout
             assert(It != BoidIDs.end());
             // O(1) erase from set
             BoidIDs.erase(It);
-            /// TODO: delete self if empty (low priority since we don't iterate)
         }
         size_t Size() const
         {

@@ -227,7 +227,7 @@ class Image
             std::cout << "Cannot export more than " << MaxFrames << " frames! " << std::endl;
             return;
         }
-        std::string Path = "Out/";
+        std::string Path = "out/";
         std::string NumStr = std::to_string(NumExported); // which frame this is
         std::string Filename = Path + std::string(NumLeading0s - NumStr.length(), '0') + NumStr + ".ppm";
 

@@ -177,10 +177,7 @@ void NLayout::Append(const std::vector<Boid> &Immigrants)
             assert(Idx < BoidsGlobalData.size());
 #pragma omp critical
             {
-                /// NOTE: one option to have O(1) random iterator accesses is to
-                // guarantee that Immigrants is always sorted by BoidID, then instead
-                // of adding/removing one at a time, it can be done all at once in O(N)
-                // which is O(1) for each boid in Immigrants
+                // should be O(1) complexity
                 BoidsGlobalData.at(BoidsGlobal[Idx].FlockID).Remove(B); // remove old
                 BoidsGlobal[Idx].FlockID = FlockID;                     // assign new FlockID to Boid
                 BoidsGlobalData.at(FlockID).Add(B);                     // add new to my flock
