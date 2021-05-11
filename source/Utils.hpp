@@ -50,7 +50,7 @@ struct TracerParamsStruct
 
 struct FlockParamsStruct
 {
-    size_t MaxSize, MaxNumComm;
+    size_t MaxSize, MaxNumComm, UseParFlocks;
 };
 
 struct ImageParamsStruct
@@ -132,6 +132,8 @@ inline void ParseParams(const std::string &FilePath)
             GlobalParams.FlockParams.MaxSize = std::stoi(ParamValue);
         else if (!ParamName.compare("max_flock_delegation"))
             GlobalParams.FlockParams.MaxNumComm = std::stoi(ParamValue);
+        else if (!ParamName.compare("use_par_flocks"))
+            GlobalParams.FlockParams.UseParFlocks = stob(ParamValue);
         else
             continue;
     }

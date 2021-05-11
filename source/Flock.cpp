@@ -10,23 +10,25 @@ bool Flock::IsValidFlock() const
 {
     if (!Valid)
         return false;
-    if (Size() < 0 || Size() > int(Params.MaxSize))
+    if (Size() > Params.MaxSize)
         return false;
     return true;
 }
 
-int Flock::Size() const
+size_t Flock::Size() const
 {
-    return Neighbourhood.size();
+    return Neighbourhood.Size();
 }
 
 void Flock::SenseAndPlan(const int TID, const std::vector<Flock> &AllFlocks)
 {
     assert(IsValidFlock()); // make sure this flock is valid
+    // assert(NLayout::GetType() == NLayout::Local); // only on Local type
     TIDs.SenseAndPlan = TID;
-    for (Boid &B : Neighbourhood)
+    std::vector<Boid *> Boids = Neighbourhood.GetBoids();
+    for (Boid *B : Boids)
     {
-        B.SenseAndPlan(this, AllFlocks);
+        B->SenseAndPlan(this, AllFlocks);
     }
 }
 
@@ -34,14 +36,15 @@ void Flock::Act(const double DeltaTime)
 {
     // all boids advance one timestep, can be done asynrhconously bc indep
     assert(IsValidFlock()); // make sure this flock is valid
+    // assert(NLayout::GetType() == NLayout::Local); // only on Local type
     COM = Vec2D(0, 0);
-    for (size_t i = 0; i < Neighbourhood.size(); i++)
+    std::vector<Boid *> Boids = Neighbourhood.GetBoids();
+    for (Boid *B : Boids)
     {
-        Boid &B = Neighbourhood[i];
-        B.Act(DeltaTime);
-        COM += B.Position; // updates COM based off the most up-to-date boid positions
+        B->Act(DeltaTime);
+        COM += B->Position; // updates COM based off the most up-to-date boid positions
     }
-    COM /= Neighbourhood.size(); // we know Neighbourhood.size() > 0 bc Valid
+    COM /= Size(); // we know Neighbourhood.size() > 0 bc Valid
 }
 
 void Flock::Delegate(const int TID, const std::vector<Flock> &AllFlocks)
@@ -61,28 +64,29 @@ void Flock::Delegate(const int TID, const std::vector<Flock> &AllFlocks)
     Emigrants.clear(); // if not done first, may get double counting later
 
     // Look through our neighbourhood
-    for (size_t i = 0; i < Neighbourhood.size(); i++)
+    std::vector<Boid *> Boids = Neighbourhood.GetBoids();
+    for (const Boid *B : Boids)
     {
-        Boid &B = Neighbourhood[i];
         bool Emigrated = false; // whether or not this boid is leaving the flock
         for (const Flock *F : NearbyFlocks)
         {
             Tracer::AddRead(FlockID, F->FlockID, Flock::DelegateOp);
-            for (const Boid &Peer : F->Neighbourhood)
+            std::vector<Boid *> FBoids = F->Neighbourhood.GetBoids();
+            for (const Boid *Peer : FBoids)
             {
-                Tracer::AddRead(B.GetFlockID(), Peer.GetFlockID(), Flock::SenseAndPlanOp);
+                Tracer::AddRead(B->GetFlockID(), Peer->GetFlockID(), Flock::SenseAndPlanOp);
                 /// TODO: should I keep track of the boid->boid communication in traces too?
                 // Tracer::AddRead(B.FlockID, Peer.FlockID, Flock::Delegate);
                 /// NOTE: can do cool stuff like if the dist to their flock's COM is less
                 // than the distance to this own flock's COM
-                if (B.DistanceLT(Peer, B.Params.CollisionRadius) && F->Size() < int(F->Params.MaxSize))
+                if (B->DistanceLT((*Peer), B->Params.CollisionRadius) && F->Size() < F->Params.MaxSize)
                 {
                     /// NOTE: this is a very simple rule... only checking if
                     // their flock is larger/eq, then I send them over there
                     bool FlockRule = (Size() <= F->Size());
                     if (FlockRule)
                     {
-                        Emigrants[F->FlockID].push_back(B);
+                        Emigrants[F->FlockID].push_back((*B));             // dereference from Boid*
                         Emigrants[F->FlockID].back().FlockID = F->FlockID; // update latest bucket's FiD
                         Emigrated = true; // indicate that this boid is part of the emigration bucket
                     }
@@ -103,7 +107,7 @@ void Flock::Delegate(const int TID, const std::vector<Flock> &AllFlocks)
         if (!Emigrated)
         {
             // stores all the boids (unchanged) into what will be this flock's new neighbourhood
-            Emigrants[FlockID].push_back(B);
+            Emigrants[FlockID].push_back((*B));
         }
     }
 #ifndef NDEBUG
@@ -114,7 +118,7 @@ void Flock::Delegate(const int TID, const std::vector<Flock> &AllFlocks)
         NumLeaving += Emigrants[F->FlockID].size();
     }
     size_t NumStaying = Emigrants[FlockID].size();
-    assert(NumLeaving + NumStaying == Neighbourhood.size());
+    assert(NumLeaving + NumStaying == Neighbourhood.Size());
 #endif
 }
 
@@ -124,7 +128,7 @@ void Flock::AssignToFlock(const int TID, const std::vector<Flock> &AllFlocks)
     TIDs.AssignToFlock = TID;
     if (AllFlocks.size() > 1) // if this is the last flock, do nothing
     {
-        Neighbourhood.clear(); // clear my local neighbourhood
+        Neighbourhood.ClearLocal(); // clear my local neighbourhood
         for (const Flock &Other : AllFlocks)
         {
             // Tracer::AddRead(FlockID, Other.FlockID, Flock::AssignToFlockOp);
@@ -132,35 +136,35 @@ void Flock::AssignToFlock(const int TID, const std::vector<Flock> &AllFlocks)
             if (Other.Emigrants.find(FlockID) != Other.Emigrants.end())
             {
                 const std::vector<Boid> &Immigrants = Other.Emigrants.at(FlockID);
-                // don't need a critical section bc writing to local, reading from remote
-                Neighbourhood.insert(Neighbourhood.end(), Immigrants.begin(), Immigrants.end());
+                // may require critical section if using Global boids vector
+                Neighbourhood.Append(Immigrants);
             }
         }
     }
     Valid = (Size() > 0); // need to have at least one boid to be a valid flock
 }
 
-void Flock::Recruit(Boid &B, Flock &BsFlock)
-{
-    /// NOTE: this is depracated
-    assert(IsValidFlock());
-    const size_t TheirFlockID = B.GetFlockID();
-    if (TheirFlockID == FlockID || Size() > int(Params.MaxSize))
-    {
-        // do nothing
-        return;
-    }
-    // find position of boid in other neighbourhood
-    std::vector<Boid> &OtherNeighbourhood = BsFlock.Neighbourhood;
-    // update the newcomer's flock id
-    B.FlockID = FlockID;
-    // move B over to our flock
-    Neighbourhood.push_back(std::move(B));
-    // O(1) swap B with end of the other flock's neighbourhood for fast pop
-    std::swap(B, OtherNeighbourhood.back());
-    // destroy the last element (unusable after std::move) in OtherNeighbourhood
-    OtherNeighbourhood.pop_back(); // destructive
-}
+// void Flock::Recruit(Boid &B, Flock &BsFlock)
+// {
+//     /// NOTE: this is depracated
+//     assert(IsValidFlock());
+//     const size_t TheirFlockID = B.GetFlockID();
+//     if (TheirFlockID == FlockID || Size() > int(Params.MaxSize))
+//     {
+//         // do nothing
+//         return;
+//     }
+//     // find position of boid in other neighbourhood
+//     std::vector<Boid> &OtherNeighbourhood = BsFlock.Neighbourhood;
+//     // update the newcomer's flock id
+//     B.FlockID = FlockID;
+//     // move B over to our flock
+//     Neighbourhood.push_back(std::move(B));
+//     // O(1) swap B with end of the other flock's neighbourhood for fast pop
+//     std::swap(B, OtherNeighbourhood.back());
+//     // destroy the last element (unusable after std::move) in OtherNeighbourhood
+//     OtherNeighbourhood.pop_back(); // destructive
+// }
 
 std::vector<const Flock *> Flock::NearestFlocks(const std::vector<Flock> &AllFlocks) const
 {
@@ -208,9 +212,10 @@ void Flock::Draw(Image &I) const
     assert(IsValidFlock());
 
     /// TODO: check if can-parallelize?
-    for (const Boid &B : Neighbourhood)
+    std::vector<Boid *> Boids = Neighbourhood.GetBoids();
+    for (Boid *B : Boids)
     {
-        B.Draw(I);
+        B->Draw(I);
     }
 }
 
