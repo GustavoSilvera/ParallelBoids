@@ -32,7 +32,7 @@ void Boid::SenseAndPlan(const Flock *FlockPtr, const std::vector<Flock> &Flocks)
             for (size_t i = 0; i < F.Size(); i++)
             {
                 // begin planning for this boid for each boid that is sensed
-                const Boid *B = F.Neighbourhood[i];
+                const Boid *B = F.Neighbourhood.GetBoidF(i);
                 Plan(*B, RelCOM, RelCOV, Sep, NumCloseby);
             }
         }

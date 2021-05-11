@@ -17,7 +17,7 @@ bool Flock::IsValidFlock() const
 
 size_t Flock::Size() const
 {
-    return Neighbourhood.Size(FlockID);
+    return Neighbourhood.Size();
 }
 
 void Flock::SenseAndPlan(const int TID, const std::vector<Flock> &AllFlocks)
@@ -27,7 +27,8 @@ void Flock::SenseAndPlan(const int TID, const std::vector<Flock> &AllFlocks)
     TIDs.SenseAndPlan = TID;
     for (size_t i = 0; i < Size(); i++)
     {
-        Neighbourhood[i]->SenseAndPlan(this, AllFlocks);
+        Boid *B = Neighbourhood.GetBoidF(i);
+        B->SenseAndPlan(this, AllFlocks);
     }
 }
 
@@ -39,7 +40,7 @@ void Flock::Act(const double DeltaTime)
     COM = Vec2D(0, 0);
     for (size_t i = 0; i < Size(); i++)
     {
-        Boid *B = Neighbourhood[i];
+        Boid *B = Neighbourhood.GetBoidF(i);
         B->Act(DeltaTime);
         COM += B->Position; // updates COM based off the most up-to-date boid positions
     }
@@ -65,14 +66,14 @@ void Flock::Delegate(const int TID, const std::vector<Flock> &AllFlocks)
     // Look through our neighbourhood
     for (size_t i = 0; i < Size(); i++)
     {
-        Boid *B = Neighbourhood[i];
+        Boid *B = Neighbourhood.GetBoidF(i);
         bool Emigrated = false; // whether or not this boid is leaving the flock
         for (const Flock *F : NearbyFlocks)
         {
             Tracer::AddRead(FlockID, F->FlockID, Flock::DelegateOp);
             for (size_t j = 0; j < F->Size(); j++)
             {
-                const Boid *Peer = F->Neighbourhood[j];
+                const Boid *Peer = F->Neighbourhood.GetBoidF(j);
                 Tracer::AddRead(B->GetFlockID(), Peer->GetFlockID(), Flock::SenseAndPlanOp);
                 /// TODO: should I keep track of the boid->boid communication in traces too?
                 // Tracer::AddRead(B.FlockID, Peer.FlockID, Flock::Delegate);
@@ -117,7 +118,7 @@ void Flock::Delegate(const int TID, const std::vector<Flock> &AllFlocks)
         NumLeaving += Emigrants[F->FlockID].size();
     }
     size_t NumStaying = Emigrants[FlockID].size();
-    assert(NumLeaving + NumStaying == Neighbourhood.Size(FlockID));
+    assert(NumLeaving + NumStaying == Neighbourhood.Size());
 #endif
 }
 
@@ -213,7 +214,7 @@ void Flock::Draw(Image &I) const
     /// TODO: check if can-parallelize?
     for (size_t i = 0; i < Size(); i++)
     {
-        const Boid *B = Neighbourhood[i];
+        const Boid *B = Neighbourhood.GetBoidF(i);
         B->Draw(I);
     }
 }
