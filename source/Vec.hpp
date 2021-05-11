@@ -61,14 +61,6 @@ class Vec2D
         return Vec2D(Data) / Size();
     }
 
-    Vec2D rotate(const double angle) const
-    {
-        /// TODO: make one that operates on vector itself
-        const double rX = cos(angle) * Data[0] - sin(angle) * Data[1];
-        const double rY = sin(angle) * Data[0] + cos(angle) * Data[1];
-        return Vec2D(rX, rY);
-    }
-
     //////////// :CREATION: //////////////
     Vec2D operator+(const Vec2D &Other) const
     {
@@ -100,7 +92,6 @@ class Vec2D
         return Ret;
     }
 
-    /// TODO: add template <typename T>
     Vec2D operator*(const double Scale) const
     {
         Vec2D Ret(Data);
@@ -111,6 +102,12 @@ class Vec2D
         return Ret;
     }
 
+    Vec2D Rotate(const double Angle) const
+    {
+        const double rX = cos(Angle) * Data[0] - sin(Angle) * Data[1];
+        const double rY = sin(Angle) * Data[0] + cos(Angle) * Data[1];
+        return Vec2D(rX, rY);
+    }
     //////////// :ASSIGNMENT: //////////////
     void operator+=(const Vec2D &Other)
     {
@@ -151,6 +148,14 @@ class Vec2D
             // ensures elements are present
             Data[i] = Other.Data[i];
         }
+    }
+
+    void RotateInPlace(const double Angle)
+    {
+        double Tmp1 = cos(Angle) * Data[0] - sin(Angle) * Data[1];
+        double Tmp2 = sin(Angle) * Data[0] + cos(Angle) * Data[1];
+        Data[0] = Tmp1;
+        Data[1] = Tmp2;
     }
 
     //////////// :GETTERS: //////////////

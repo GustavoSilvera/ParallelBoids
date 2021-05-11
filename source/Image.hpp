@@ -67,7 +67,6 @@ class Image
 
     void SetPixel(const size_t X, const size_t Y, const Colour &C)
     {
-        /// TODO: do we need to check bounds always? even with EdgeWrap?
         bool WithinWidth = (X < Params.WindowX);
         bool WithinHeight = (Y < Params.WindowY);
         if (WithinWidth && WithinHeight) // draw boid within bound (triangle)
@@ -135,7 +134,6 @@ class Image
         {
             for (double pY = Y - Radius; pY < Y + Radius; pY++)
             {
-                /// TODO: provide functionality for custom-sized radii
                 if (sqr(pX - X) + sqr(pY - Y) < sqr(Radius))
                 {
                     SetPixel(pX, pY, C);
@@ -197,7 +195,6 @@ class Image
         {
             for (double pY = Y - Radius; pY < Y + Radius; pY++)
             {
-                /// TODO: provide functionality for custom-sized radii
                 if (sqr(pX - X) + sqr(pY - Y) < sqr(Radius) && sqr(pX - X) + sqr(pY - Y) > sqr(Radius - 1))
                 {
                     SetPixel(pX, pY, C);
@@ -211,10 +208,8 @@ class Image
         Vec2D Direction = B - A;
         const double Magnitude = Direction.Size();
         Direction /= Magnitude; // normalize it
-        /// TODO: add more granularity for lines
         for (size_t i = 0; i < Magnitude; i++)
         {
-            /// TODO: verify this works
             const Vec2D Pixel = A + Direction * i;
             SetPixel(Pixel, C);
         }

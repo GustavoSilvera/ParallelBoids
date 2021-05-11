@@ -21,7 +21,7 @@ void Boid::SenseAndPlan(const Flock *FlockPtr, const std::vector<Flock> &Flocks)
     Vec2D RelCOM, RelCOV, Sep; // relative center-of-mass/velocity, & separation
     size_t NumCloseby = 0;
     // begin sensing all other boids in all other flocks
-
+    ThreadID = FlockPtr->TIDs.SenseAndPlan;
     /// This can be optimized heavily, for instance, what if we used an NxN array where
     // each point is a 'set' of boids, then we can quickly index to spacially local boids
     for (const Flock &F : Flocks)
@@ -94,8 +94,7 @@ void Boid::Draw(Image &I) const
     Colour C(255, 255, 255);
     if (Params.ColourByThread)
     {
-        /// TODO: fix
-        C = IDColours[FlockID % IDColours.size()];
+        C = IDColours[ThreadID % IDColours.size()];
     }
     else
     {

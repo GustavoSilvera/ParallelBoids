@@ -57,8 +57,6 @@ class Simulator
         // Run our actual problem (boid computation)
         auto StartTime = std::chrono::system_clock::now();
 
-        /// TODO: use omp for (spawns threads) and omp barrier/single
-
 #ifndef NDEBUG
         size_t BoidCount = 0;
         for (auto A : AllFlocks)

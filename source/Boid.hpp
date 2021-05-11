@@ -43,7 +43,7 @@ class Boid
     Vec2D Position, Velocity, Acceleration;
     Vec2D a1, a2, a3;
     static BoidParamsStruct Params;
-    size_t FlockID, BoidID;
+    size_t FlockID, BoidID, ThreadID;
 
     size_t GetFlockID() const;
 
