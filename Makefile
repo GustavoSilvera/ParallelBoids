@@ -1,5 +1,5 @@
 TARGET = Simulator # name of binary
-OBJS += Simulator.o Flock.o Boid.o Tracer.o # all the cpp obj files
+OBJS += Simulator.o Flock.o Boid.o Neighbourhood.o Tracer.o # all the cpp obj files
 
 CXX = g++
 # CXX = clang++

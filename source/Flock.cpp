@@ -85,8 +85,8 @@ void Flock::Delegate(const int TID, const std::vector<Flock> &AllFlocks)
                     bool FlockRule = (Size() <= F->Size());
                     if (FlockRule)
                     {
-                        Emigrants[F->FlockID].push_back((*B));              // dereference from Boid*
-                        Emigrants[F->FlockID].back()->FlockID = F->FlockID; // update latest bucket's FiD
+                        Emigrants[F->FlockID].push_back((*B));             // dereference from Boid*
+                        Emigrants[F->FlockID].back().FlockID = F->FlockID; // update latest bucket's FiD
                         Emigrated = true; // indicate that this boid is part of the emigration bucket
                     }
                     break; // don't need to check the rest bc they are all in the same flock
@@ -106,7 +106,7 @@ void Flock::Delegate(const int TID, const std::vector<Flock> &AllFlocks)
         if (!Emigrated)
         {
             // stores all the boids (unchanged) into what will be this flock's new neighbourhood
-            Emigrants[FlockID].push_back(B);
+            Emigrants[FlockID].push_back((*B));
         }
     }
 #ifndef NDEBUG

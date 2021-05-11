@@ -40,7 +40,7 @@ struct SimulatorParamsStruct
 {
     size_t NumBoids, NumThreads, NumIterations;
     double DeltaTime;
-    bool ParallelizeAcrossFlocks, RenderingMovie, UseParFlocks;
+    bool ParallelizeAcrossFlocks, RenderingMovie;
 };
 
 struct TracerParamsStruct
@@ -50,7 +50,7 @@ struct TracerParamsStruct
 
 struct FlockParamsStruct
 {
-    size_t MaxSize, MaxNumComm;
+    size_t MaxSize, MaxNumComm, UseParFlocks;
 };
 
 struct ImageParamsStruct

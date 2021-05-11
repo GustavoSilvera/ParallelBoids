@@ -3,11 +3,11 @@
 #include <omp.h>
 
 // default layout is invalid until assigned
-static NLayout::Layout UsingLayout = NLayout::Invalid;
+NLayout::Layout NLayout::UsingLayout = NLayout::Invalid;
 // boid struct of arrays is empty
-static std::vector<Boid> NLayout::BoidsGlobal;
+std::vector<Boid> NLayout::BoidsGlobal;
 // boid sizes hash map is empty
-static unordered_map<size_t, size_t> NLayout::BoidsGlobalSizes;
+std::unordered_map<size_t, size_t> NLayout::BoidsGlobalSizes;
 
 void NLayout::SetType(const Layout L)
 {
@@ -15,7 +15,7 @@ void NLayout::SetType(const Layout L)
     UsingLayout = L;
 }
 
-void NLayout::Layout GetType() const
+NLayout::Layout NLayout::GetType()
 {
     return UsingLayout;
 }
@@ -25,7 +25,7 @@ void NLayout::NewBoid(const size_t FlockID)
     Boid NewBoidStruct(FlockID);
     if (UsingLayout == Local)
     {
-        BoidsLocal.push_back(NewBoidStruct)
+        BoidsLocal.push_back(NewBoidStruct);
     }
     else
     {
@@ -40,7 +40,7 @@ size_t NLayout::Size(const size_t FlockID) const
 {
     if (UsingLayout == Local)
     {
-        return BoidsAoS.size();
+        return BoidsLocal.size();
     }
     assert(UsingLayout == Global);
     return BoidsGlobalSizes[FlockID];
@@ -48,14 +48,16 @@ size_t NLayout::Size(const size_t FlockID) const
 
 Boid *NLayout::operator[](const size_t Idx) const
 {
+    /// NOTE: using const-cast to keep function marked const
+    // but allow edits to the underlying boids afterwards
     if (UsingLayout == Local)
     {
         assert(Idx < Size());
-        return &(BoidsLocal[Idx]);
+        return const_cast<Boid *>(&(BoidsLocal[Idx]));
     }
     assert(UsingLayout == Global);
     assert(Idx < Size());
-    return &(BoidsGlobal[Idx]);
+    return const_cast<Boid *>(&(BoidsGlobal[Idx]));
 }
 
 void NLayout::ClearLocal()
