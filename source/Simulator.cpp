@@ -18,6 +18,9 @@ class Simulator
                   << GlobalParams.ImageParams.WindowX << ", " << GlobalParams.ImageParams.WindowY << ") world with "
                   << Params.NumThreads << " threads" << std::endl;
 
+        // Initialize neighbourhood layout for flocks before use
+        Flock::InitNeighbourhoodLayout();
+        // Spawn flocks
         for (size_t i = 0; i < Params.NumBoids; i++)
         {
             AllFlocks.push_back(Flock(i, 1));
