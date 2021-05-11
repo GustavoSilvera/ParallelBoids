@@ -141,7 +141,7 @@ void NLayout::Append(const std::vector<Boid> &Immigrants)
         for (const Boid &B : Immigrants)
         {
             const size_t Idx = B.BoidID;
-            if (B.FlockID == FlockID)
+            if (BoidsGlobal[Idx].FlockID == FlockID)
             {
                 continue; // don't need to remove/readd them
             }
@@ -154,7 +154,9 @@ void NLayout::Append(const std::vector<Boid> &Immigrants)
                 // of adding/removing one at a time, it can be done all at once in O(N)
                 // which is O(1) for each boid in Immigrants
                 BoidsGlobalData.at(BoidsGlobal[Idx].FlockID).Remove(B); // remove old
+                BoidsGlobal[Idx].FlockID = FlockID;                     // assign new FlockID to Boid
                 BoidsGlobalData.at(FlockID).Add(B);                     // add new to my flock
+                assert(IsValid());
             }
         }
     }
