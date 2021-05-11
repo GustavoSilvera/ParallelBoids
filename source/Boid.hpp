@@ -43,10 +43,7 @@ class Boid
     Vec2D Position, Velocity, Acceleration;
     Vec2D a1, a2, a3;
     static BoidParamsStruct Params;
-    // Flock *FlockPtr;
     size_t FlockID, BoidID;
-    size_t MaxW = GlobalParams.ImageParams.WindowX - 1;
-    size_t MaxH = GlobalParams.ImageParams.WindowY - 1;
 
     size_t GetFlockID() const;
 

@@ -111,6 +111,8 @@ void Boid::Draw(Image &I) const
 void Boid::EdgeWrap()
 {
     // used to wrap the boids around to the other side of the window
+    size_t MaxW = GlobalParams.ImageParams.WindowX - 1;
+    size_t MaxH = GlobalParams.ImageParams.WindowY - 1;
     double ClampedX = Position[0];
     if (ClampedX < 0)
     {
