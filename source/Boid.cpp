@@ -12,7 +12,7 @@ size_t Boid::GetFlockID() const
     return FlockID;
 }
 
-void Boid::SenseAndPlan(const Flock *FlockPtr, const std::vector<Flock> &Flocks)
+void Boid::SenseAndPlan(const Flock *FlockPtr, const std::vector<Flock> &AllFlocks)
 {
     // reset current force factors
     a1 = Vec2D(0, 0);
@@ -24,18 +24,71 @@ void Boid::SenseAndPlan(const Flock *FlockPtr, const std::vector<Flock> &Flocks)
     ThreadID = FlockPtr->TIDs.SenseAndPlan;
     /// This can be optimized heavily, for instance, what if we used an NxN array where
     // each point is a 'set' of boids, then we can quickly index to spacially local boids
-    for (const Flock &F : Flocks)
+    for (const Flock &F : AllFlocks)
     {
-        /// TODO: find the nearest boid and determine who else to look for
-        if ((F.COM - FlockPtr->COM).Size() < 2 * Params.NeighbourhoodRadius)
+        // if flock is close enough
+        // if ((F.COM - FlockPtr->COM).Size() < 2 * Params.NeighbourhoodRadius)
+        // {
+        std::vector<Boid *> Boids = F.Neighbourhood.GetBoids();
+        for (Boid *B : Boids)
         {
-            std::vector<Boid *> Boids = F.Neighbourhood.GetBoids();
-            for (Boid *B : Boids)
-            {
-                // begin planning for this boid for each boid that is sensed
-                Plan((*B), RelCOM, RelCOV, Sep, NumCloseby);
-            }
+            // begin planning for this boid for each boid that is sensed
+            Plan((*B), RelCOM, RelCOV, Sep, NumCloseby);
         }
+        // }
+    }
+
+    if (NumCloseby > 0)
+    {
+        a1 = ((RelCOM / NumCloseby) - Position) * Params.Cohesion;
+        a2 = Sep * Params.Separation; // dosent depent on NumCloseby but makes sense
+        a3 = ((RelCOV / NumCloseby) - Velocity) * Params.Alignment;
+    }
+}
+
+void Boid::SenseAndPlan(const int TID, const std::vector<Boid> &AllBoids)
+{
+    // reset current force factors
+    a1 = Vec2D(0, 0);
+    a2 = Vec2D(0, 0);
+    a3 = Vec2D(0, 0);
+    Vec2D RelCOM, RelCOV, Sep; // relative center-of-mass/velocity, & separation
+    size_t NumCloseby = 0;
+    /// NOTE: that thread ID's are handled by the Simulator openmp, not Flocks anymore
+    ThreadID = TID;
+    // begin sensing all other boids in all other flocks
+
+    // use associative containers to do fast checks for boids
+    // std::unordered_set<size_t> FarAwayFlocks;
+    // std::unordered_set<size_t> NearbyFlocks;
+    for (const Boid &B : AllBoids)
+    {
+        // we know this boid is close enough, so plan with it
+        Plan(B, RelCOM, RelCOV, Sep, NumCloseby);
+        // if (NearbyFlocks.find(B.FlockID) != NearbyFlocks.end())
+        // {
+        //     // we know this boid is close enough, so plan with it
+        //     Plan(B, RelCOM, RelCOV, Sep, NumCloseby);
+        // }
+        // else
+        // {
+        //     // first check if the boid is in a far away flock
+        //     if (FarAwayFlocks.find(B.FlockID) == FarAwayFlocks.end())
+        //     {
+        //         // if flock is too far away, add it to the "ignore" set
+        //         if ((B.FlockPtr.COM - FlockPtr->COM).Size() < 2 * Params.NeighbourhoodRadius)
+        //         {
+        //             // now we know this boid is in a "close enough" flock
+        //             NearbyFlocks.insert(B.FlockID);
+        //             Plan(B, RelCOM, RelCOV, Sep, NumCloseby);
+        //         }
+        //         else
+        //         {
+        //             FarAwayFlocks.insert(B.FlockID);
+        //         }
+        //     }
+        //     // else ignore, this case occurs if the boid is in a FarAwayFlock
+        // }
     }
 
     if (NumCloseby > 0)

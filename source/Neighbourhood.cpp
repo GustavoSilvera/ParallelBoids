@@ -24,6 +24,7 @@ NLayout::Layout NLayout::GetType()
 
 bool NLayout::IsValid() const
 {
+    /// WARNING: this function is not thread safe
     // ensure layout is local or global
     if (UsingLayout == Invalid)
         return false;
@@ -114,6 +115,16 @@ std::vector<Boid *> NLayout::GetBoids() const
         GlobalFlock.push_back(const_cast<Boid *>(&B));
     }
     return GlobalFlock;
+}
+
+std::vector<Boid> *NLayout::GetAllBoidsPtr() const
+{
+    if (UsingLayout == Local)
+    {
+        return const_cast<std::vector<Boid> *>(&BoidsLocal);
+    }
+    assert(UsingLayout == Global);
+    return const_cast<std::vector<Boid> *>(&BoidsGlobal);
 }
 
 Boid *NLayout::GetBoidF(const size_t Idx) const

@@ -16,6 +16,7 @@ class NLayout // options bs local and global boid layout
     void ClearLocal();
     bool IsValid() const;
     std::vector<Boid *> GetBoids() const;
+    std::vector<Boid> *GetAllBoidsPtr() const;
     void Append(const std::vector<Boid> &Immigrants);
     // for both layout types
     Boid *operator[](const size_t Idx) const;

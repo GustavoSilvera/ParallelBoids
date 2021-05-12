@@ -229,7 +229,7 @@ void Flock::CleanUp(std::vector<Flock> &AllFlocks)
 #ifndef NDEBUG
     for (const Flock &A : AllFlocks)
     {
-        assert(A.IsValidFlock());
+        assert(A->IsValidFlock());
     }
 #endif
 }

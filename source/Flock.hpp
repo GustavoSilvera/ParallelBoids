@@ -31,7 +31,7 @@ class Flock
         if (NLayout::GetType() == NLayout::Invalid)
         {
             // only done once, static vars
-            if (GlobalParams.FlockParams.UseParFlocks)
+            if (GlobalParams.FlockParams.UseLocalNeighbourhoods)
                 NLayout::SetType(NLayout::Local);
             else
                 NLayout::SetType(NLayout::Global);
