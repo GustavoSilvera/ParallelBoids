@@ -122,6 +122,12 @@ class Simulator
             {
                 AllFlocks[i].AssignToFlock(omp_get_thread_num(), AllFlocks);
             }
+#pragma omp barrier
+#pragma omp for schedule(static)
+            for (size_t i = 0; i < AllFlocks.size(); i++)
+            {
+                AllFlocks[i].ComputeBB();
+            }
         }
         // convert flock data to processor communications
         Tracer::SaveFlockMatrix(AllFlocks);

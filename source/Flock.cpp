@@ -158,6 +158,28 @@ void Flock::AssignToFlock(const int TID, const std::vector<Flock> &AllFlocks)
     Valid = (Size() > 0); // need to have at least one boid to be a valid flock
 }
 
+void Flock::ComputeBB()
+{
+    if (Size() == 0)
+        return;
+    assert(IsValidFlock());
+    std::vector<Boid *> Boids = Neighbourhood.GetBoids();
+    BoundingBox NewBB(Boids[0]->Position); // initialize to Boids[0]'s position
+    for (const Boid *B : Boids)
+    {
+        if (B->Position[0] < NewBB.TopLeftX)
+            NewBB.TopLeftX = B->Position[0];
+        if (B->Position[0] > NewBB.BottomRightX)
+            NewBB.BottomRightX = B->Position[0];
+        if (B->Position[1] < NewBB.TopLeftY)
+            NewBB.TopLeftY = B->Position[1];
+        if (B->Position[1] > NewBB.BottomRightY)
+            NewBB.BottomRightY = B->Position[1];
+    }
+    // assign new bounding box with most extreme boid positions
+    BB = NewBB;
+}
+
 // void Flock::Recruit(Boid &B, Flock &BsFlock)
 // {
 //     /// NOTE: this is depracated
@@ -227,6 +249,7 @@ void Flock::Draw(Image &I) const
 
     /// TODO: check if can-parallelize?
     std::vector<Boid *> Boids = Neighbourhood.GetBoids();
+    I.DrawStrokedRect(BB.TopLeftX, BB.TopLeftY, BB.BottomRightX, BB.BottomRightY);
     for (Boid *B : Boids)
     {
         B->Draw(I);
@@ -243,7 +266,7 @@ void Flock::CleanUp(std::vector<Flock> &AllFlocks)
 #ifndef NDEBUG
     for (const Flock &A : AllFlocks)
     {
-        assert(A->IsValidFlock());
+        assert(A.IsValidFlock());
     }
 #endif
 }

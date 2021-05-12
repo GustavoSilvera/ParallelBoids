@@ -22,22 +22,18 @@ void Boid::SenseAndPlan(const Flock *FlockPtr, const std::vector<Flock> &AllFloc
     size_t NumCloseby = 0;
     // begin sensing all other boids in all other flocks
     ThreadID = FlockPtr->TIDs.SenseAndPlan;
-    /// This can be optimized heavily, for instance, what if we used an NxN array where
-    // each point is a 'set' of boids, then we can quickly index to spacially local boids
     for (const Flock &F : AllFlocks)
     {
-        // if flock is close enough
-        /// NOTE: technically this optimization may not be correct for all cases bc there could
-        // be a far away flock with a nearby boid (outlier in that flock)
-        // if ((F.COM - FlockPtr->COM).Size() < 2 * Params.NeighbourhoodRadius)
-        // {
-        std::vector<Boid *> Boids = F.Neighbourhood.GetBoids();
-        for (Boid *B : Boids)
+        // if flock is close enough (correct bc bounding boxes)
+        if (F.BB.IntersectsBB(FlockPtr->BB)) // if flock is close enough
         {
-            // begin planning for this boid for each boid that is sensed
-            Plan((*B), RelCOM, RelCOV, Sep, NumCloseby);
+            std::vector<Boid *> Boids = F.Neighbourhood.GetBoids();
+            for (Boid *B : Boids)
+            {
+                // begin planning for this boid for each boid that is sensed
+                Plan((*B), RelCOM, RelCOV, Sep, NumCloseby);
+            }
         }
-        // }
     }
 
     if (NumCloseby > 0)
