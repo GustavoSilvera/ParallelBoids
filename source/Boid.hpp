@@ -50,11 +50,7 @@ class Boid
 
     size_t GetFlockID() const;
 
-    // for parallelizing across flocks
-    void SenseAndPlan(const int TID, const Flock *FlockPtr, const std::unordered_map<size_t, Flock> &AllFlocks);
-    // for parallelizing across boids
-    void SenseAndPlan(const int TID, const std::unordered_map<size_t, Flock> &AllFlocks,
-                      const std::vector<Boid> &AllBoids);
+    void SenseAndPlan(const int TID, const std::unordered_map<size_t, Flock> &AllFlocks);
 
     void Plan(const Boid &B, Vec2D &RCOM, Vec2D &RCOV, Vec2D &Sep, size_t &NC) const;
 

@@ -10,7 +10,7 @@ OBJS += $(OBJ_DIR)/Tracer.o # all the cpp obj files
 CXX = clang++
 CFLAGS = -std=c++11 -Wall -Werror -pedantic -pthread -fopenmp -g 
 CFLAGS += -O3 # optimization
-CFLAGS += -DNDEBUG # comment to enforce asserts
+# CFLAGS += -DNDEBUG # comment to enforce asserts
 CFLAGS += -DNTRACE # comment to trace memory accesses
 SRC_DIR = source
 

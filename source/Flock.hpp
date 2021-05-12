@@ -85,6 +85,16 @@ class Flock
             return Vec2D(TopLeftX + 0.5 * W, TopLeftY + 0.5 * H);
         }
 
+        bool IntersectsBB(BoundingBox B, const double Rad) const
+        {
+            // need to extend the bounding box by Rad
+            B.TopLeftX -= Rad;
+            B.TopLeftY -= Rad;
+            B.BottomRightX += Rad;
+            B.BottomRightY += Rad;
+            return IntersectsBB(B);
+        }
+
         bool IntersectsBB(const BoundingBox &B) const
         {
             assert(IsValidBB());
@@ -100,6 +110,8 @@ class Flock
             // if within both, then they overlap
             return true;
         }
+        // can also try circle->rectangle intersections
+        // see https://stackoverflow.com/questions/401847/circle-rectangle-collision-detection-intersection
     };
     BoundingBox BB;
 

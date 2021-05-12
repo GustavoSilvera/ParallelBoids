@@ -92,7 +92,7 @@ class Simulator
 #pragma omp for schedule(static)
                 for (size_t i = 0; i < AllBoids.size(); i++)
                 {
-                    AllBoids[i].SenseAndPlan(omp_get_thread_num(), AllFlocks, AllBoids);
+                    AllBoids[i].SenseAndPlan(omp_get_thread_num(), AllFlocks);
                 }
 #pragma omp barrier
 #pragma omp for schedule(static)

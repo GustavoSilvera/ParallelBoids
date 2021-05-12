@@ -21,7 +21,7 @@ size_t Boid::GetFlockID() const
     return FlockID;
 }
 
-void Boid::SenseAndPlan(const int TID, const Flock *FlockPtr, const std::unordered_map<size_t, Flock> &AllFlocks)
+void Boid::SenseAndPlan(const int TID, const std::unordered_map<size_t, Flock> &AllFlocks)
 {
     // reset current force factors
     assert(IsValid());
@@ -30,9 +30,11 @@ void Boid::SenseAndPlan(const int TID, const Flock *FlockPtr, const std::unorder
     a3 = Vec2D(0, 0);
     Vec2D RelCOM, RelCOV, Sep; // relative center-of-mass/velocity, & separation
     size_t NumCloseby = 0;
+    auto It = AllFlocks.find(FlockID);
+    assert(It != AllFlocks.end());
+    const Flock &ThisFlock = It->second;
     // begin sensing all other boids in all other flocks
     ThreadID = TID;
-    assert(FlockPtr->IsValidFlock());
     for (auto It = AllFlocks.begin(); It != AllFlocks.end(); It++)
     {
         assert(It != AllFlocks.end());
@@ -40,7 +42,8 @@ void Boid::SenseAndPlan(const int TID, const Flock *FlockPtr, const std::unorder
 
         assert(F.IsValidFlock());
         // if flock is close enough (correct bc bounding boxes)
-        if (F.BB.IntersectsBB(FlockPtr->BB)) // if flock is close enough
+        // after extending our BB
+        if (F.BB.IntersectsBB(ThisFlock.BB, Params.NeighbourhoodRadius))
         {
             std::vector<Boid *> Boids = F.Neighbourhood.GetBoids();
             for (const Boid *B : Boids)
@@ -48,71 +51,6 @@ void Boid::SenseAndPlan(const int TID, const Flock *FlockPtr, const std::unorder
                 // begin planning for this boid for each boid that is sensed
                 Plan((*B), RelCOM, RelCOV, Sep, NumCloseby);
             }
-        }
-    }
-
-    if (NumCloseby > 0)
-    {
-        a1 = ((RelCOM / NumCloseby) - Position) * Params.Cohesion;
-        a2 = Sep * Params.Separation; // dosent depent on NumCloseby but makes sense
-        a3 = ((RelCOV / NumCloseby) - Velocity) * Params.Alignment;
-    }
-}
-
-void Boid::SenseAndPlan(const int TID, const std::unordered_map<size_t, Flock> &AllFlocks,
-                        const std::vector<Boid> &AllBoids)
-{
-    assert(IsValid());
-    // reset current force factors
-    a1 = Vec2D(0, 0);
-    a2 = Vec2D(0, 0);
-    a3 = Vec2D(0, 0);
-    Vec2D RelCOM, RelCOV, Sep; // relative center-of-mass/velocity, & separation
-    size_t NumCloseby = 0;
-    /// NOTE: that thread ID's are handled by the Simulator openmp, not Flocks anymore
-    ThreadID = TID;
-    // begin sensing all other boids in all other flocks
-
-    // getting other flocks
-    auto It = AllFlocks.find(FlockID);
-    assert(It != AllFlocks.end());
-    const Flock &OurFlock = It->second;
-
-    // use associative containers to do fast checks for boids
-    std::unordered_set<size_t> FarAwayFlocks;
-    std::unordered_set<size_t> NearbyFlocks;
-    for (const Boid &B : AllBoids)
-    {
-        assert(B.IsValid());
-        // we know this boid is close enough, so plan with it
-        if (NearbyFlocks.find(B.FlockID) != NearbyFlocks.end())
-        {
-            // we know this boid is close enough, so plan with it
-            Plan(B, RelCOM, RelCOV, Sep, NumCloseby);
-        }
-        else
-        {
-            // get their flock
-            auto It2 = AllFlocks.find(B.FlockID); // O(1) lookup
-            assert(It2 != AllFlocks.end());
-            const Flock &B_Flock = It2->second;
-            // first check if the boid is in a far away flock
-            if (FarAwayFlocks.find(B.FlockID) == FarAwayFlocks.end())
-            {
-                // if flock is too far away, add it to the "ignore" set
-                if (B_Flock.BB.IntersectsBB(OurFlock.BB))
-                {
-                    // now we know this boid is in a "close enough" flock
-                    // so we don't need to compute intersections anymore
-                    NearbyFlocks.insert(B.FlockID);
-                    Plan(B, RelCOM, RelCOV, Sep, NumCloseby);
-                }
-                else
-                {
-                    FarAwayFlocks.insert(B.FlockID);
-                }
-            }
-            // else ignore, this case occurs if the boid is in a FarAwayFlock
         }
     }
 

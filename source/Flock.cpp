@@ -28,7 +28,7 @@ void Flock::SenseAndPlan(const int TID, const std::unordered_map<size_t, Flock> 
     std::vector<Boid *> Boids = Neighbourhood.GetBoids();
     for (Boid *B : Boids)
     {
-        B->SenseAndPlan(TID, this, AllFlocks);
+        B->SenseAndPlan(TID, AllFlocks);
     }
 }
 
