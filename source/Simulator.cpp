@@ -91,10 +91,6 @@ class Simulator
             ParallelFlocks(AllFlocksVec);
         UpdateFlocks(AllFlocksVec);
 
-        // convert flock data to processor communications
-        Tracer::SaveFlockMatrix(AllFlocks);
-        // remove empty (invalid) flocks
-        Flock::CleanUp(AllFlocks);
         auto EndTime = std::chrono::system_clock::now();
         std::chrono::duration<double> ElapsedTime = EndTime - StartTime;
         // save tracer data
@@ -212,6 +208,10 @@ class Simulator
                 AllFlocksVec[i]->ComputeBB();
             }
         }
+        // convert flock data to processor communications
+        Tracer::SaveFlockMatrix(AllFlocks);
+        // remove empty (invalid) flocks
+        Flock::CleanUp(AllFlocks);
     }
 
     void Render()

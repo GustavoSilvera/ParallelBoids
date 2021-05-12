@@ -106,6 +106,7 @@ std::vector<Boid *> NLayout::GetBoids() const
     if (UsingLayout == Local)
     {
         std::vector<Boid *> LocalFlock;
+        LocalFlock.reserve(BoidsLocal.size());
         for (const Boid &B : BoidsLocal)
         {
             LocalFlock.push_back(const_cast<Boid *>(&B));

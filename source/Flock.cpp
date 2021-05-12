@@ -47,78 +47,65 @@ void Flock::Delegate(const int TID, const std::unordered_map<size_t, Flock> &All
 {
     assert(IsValidFlock()); // make sure this flock is valid
     TIDs.Delegate = TID;
-    // update flock decisions for local neighbourhood based off nearby flocks
-    // can also maybe get "top 5 closest"
-    const std::vector<const Flock *> NearbyFlocks = NearestFlocks(AllFlocks);
-    if (NearbyFlocks.size() == 0)
-    {
-        std::cout << "No more flocks!" << std::endl;
-        return;
-    }
 
     // clear buckets from last Delegation
     Emigrants.clear(); // if not done first, may get double counting later
 
     // Look through our neighbourhood
-    std::vector<Boid *> Boids = Neighbourhood.GetBoids();
-    for (const Boid *B : Boids)
+    const std::vector<Boid *> Boids = Neighbourhood.GetBoids();
+    std::vector<std::pair<double, size_t>> BestBoidFlocks(Boids.size(),                    // corresponding to Boids
+                                                          std::make_pair(1e300, FlockID)); // this flock
+    for (auto It = AllFlocks.begin(); It != AllFlocks.end(); It++)
     {
-        bool Emigrated = false; // whether or not this boid is leaving the flock
-        for (const Flock *F : NearbyFlocks)
+        assert(It != AllFlocks.end());
+        const Flock &F = It->second;
+        Tracer::AddRead(FlockID, F.FlockID, Flock::DelegateOp);
+
+        if (F.BB.IntersectsBB(BB, GlobalParams.BoidParams.NeighbourhoodRadius))
         {
-            Tracer::AddRead(FlockID, F->FlockID, Flock::DelegateOp);
-            std::vector<Boid *> FBoids = F->Neighbourhood.GetBoids();
-            for (const Boid *Peer : FBoids)
+            for (size_t b = 0; b < Boids.size(); b++)
             {
-                Tracer::AddRead(B->GetFlockID(), Peer->GetFlockID(), Flock::SenseAndPlanOp);
-                /// TODO: should I keep track of the boid->boid communication in traces too?
-                // Tracer::AddRead(B.FlockID, Peer.FlockID, Flock::Delegate);
-                /// NOTE: can do cool stuff like if the dist to their flock's COM is less
-                // than the distance to this own flock's COM
-                if (B->DistanceLT((*Peer), B->Params.CollisionRadius) && F->Size() < F->Params.MaxSize)
+                const Boid *B = Boids[b];
+                std::vector<Boid *> FBoids = F.Neighbourhood.GetBoids();
+                for (const Boid *Peer : FBoids)
                 {
+                    if (Peer->BoidID == B->BoidID)
+                        continue; // skip self
+                    Tracer::AddRead(B->GetFlockID(), Peer->GetFlockID(), Flock::SenseAndPlanOp);
+                    const double Dist = B->DistanceTo((*Peer));
                     /// NOTE: this is a very simple rule... only checking if
                     // their flock is larger/eq, then I send them over there
-                    bool FlockRule = (Size() <= F->Size());
-                    if (FlockRule)
+                    bool FlockRule = (Size() <= F.Size()) && (Dist < B->Params.CollisionRadius);
+
+                    if (Dist < BestBoidFlocks[b].first && FlockRule)
                     {
-                        Emigrants[F->FlockID].push_back((*B));             // dereference from Boid*
-                        Emigrants[F->FlockID].back().FlockID = F->FlockID; // update latest bucket's FiD
-                        Emigrated = true; // indicate that this boid is part of the emigration bucket
+                        // std::cout << Dist << std::endl;
+                        BestBoidFlocks[b] = std::make_pair(Dist, F.FlockID);
                     }
-                    break; // don't need to check the rest bc they are all in the same flock
-                    // ie. as soon as one member of their flock satisfies our condition, we just say ok
-                    // and delegate this boid (B) to join them
                 }
             }
-
-            /// TODO: Actually do need to check other flocks. Track best flock so far, and emigrate
-            //        to best flock.
-            if (Emigrated)
-            {
-                // Don't need to check any other flocks, already going to the nearest one
-                break;
-            }
         }
-        if (!Emigrated)
-        {
-            // stores all the boids (unchanged) into what will be this flock's new neighbourhood
-            Emigrants[FlockID].push_back((*B));
-        }
+    }
+    for (size_t b = 0; b < Boids.size(); b++)
+    {
+        size_t BestFlockID = BestBoidFlocks[b].second;
+        Emigrants[BestFlockID].push_back((*Boids[b]));
+        Emigrants[BestFlockID].back().FlockID = BestFlockID;
     }
 #ifndef NDEBUG
     // No boid left behind
-    size_t NumLeaving = 0;
-    for (const Flock *F : NearbyFlocks)
+    size_t NumBuckets = 0;
+    for (auto It = AllFlocks.begin(); It != AllFlocks.end(); It++)
     {
-        NumLeaving += Emigrants[F->FlockID].size();
-        for (const Boid &B : Emigrants[F->FlockID])
+        const Flock F = It->second;
+        NumBuckets += Emigrants[F.FlockID].size();
+        for (const Boid &B : Emigrants[F.FlockID])
         {
             assert(B.IsValid());
         }
     }
-    size_t NumStaying = Emigrants[FlockID].size();
-    assert(NumLeaving + NumStaying == Neighbourhood.Size());
+
+    assert(NumBuckets == Neighbourhood.Size());
 #endif
 }
 

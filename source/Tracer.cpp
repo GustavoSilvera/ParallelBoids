@@ -99,8 +99,8 @@ void Tracer::AddReads(const size_t T_Requestor, const size_t T_Holder, const siz
         return; // do nothing
 #ifndef NTRACE
     Tracer *T = Instance();
-    assert(T->MemoryOpMatrix.size() == Tracer::Params.NumThreads);
-    assert(T->MemoryOpMatrix[0].size() == Tracer::Params.NumThreads);
+    assert(T->MemoryOpMatrix.size() == GlobalParams.SimulatorParams.NumThreads);
+    assert(T->MemoryOpMatrix[0].size() == GlobalParams.SimulatorParams.NumThreads);
     assert(0 <= T_Requestor && T_Requestor <= T->MemoryOpMatrix.size());
     assert(0 <= T_Holder && T_Holder <= T->MemoryOpMatrix[0].size());
     T->MemoryOpMatrix[T_Requestor][T_Holder].Reads += Amnt;
