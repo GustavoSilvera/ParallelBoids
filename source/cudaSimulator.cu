@@ -6,6 +6,7 @@
 #include <omp.h>      // OpenMP
 #include <string>     // cout
 #include <vector>     // std::vector
+#include <unordered_map>
 
 #include <cuda.h>
 #include <math.h>
@@ -194,7 +195,7 @@ class Simulator
         // Spawn flocks
         for (size_t i = 0; i < Params.NumBoids; i++)
         {
-            AllFlocks.push_back(Flock(i, 1));
+            AllFlocks[i] = Flock(i, 1);
         }
 
         // begin tracking which flocks communicate with which
@@ -211,8 +212,7 @@ class Simulator
         }
     }
     static SimulatorParamsStruct Params;
-    std::vector<Flock> AllFlocks;
-    std::vector<int> FlockSizes;
+    std::unordered_map<size_t, Flock> AllFlocks;
     Image I;
 
     void Simulate()
@@ -236,7 +236,7 @@ class Simulator
     }
 
     void InitBoidDataArrays() {
-        std::vector<Boid> &AllBoids = *(AllFlocks.begin()->Neighbourhood.GetAllBoidsPtr());
+        std::vector<Boid> &AllBoids = *(AllFlocks.begin()->second.Neighbourhood.GetAllBoidsPtr());
         size_t vecSize = sizeof(float) * 2 * numBoids;
         size_t intSize = sizeof(int) * numBoids;
 
@@ -267,7 +267,7 @@ class Simulator
      * @pre All Boid arrays have been initialized and are up to date.
      */
     void UpdateBoidPosAndVel() {
-        std::vector<Boid> &AllBoids = *(AllFlocks.begin()->Neighbourhood.GetAllBoidsPtr());
+        std::vector<Boid> &AllBoids = *(AllFlocks.begin()->second.Neighbourhood.GetAllBoidsPtr());
         for (size_t i = 0; i < AllBoids.size(); i++)
         {
             Boid &B = AllBoids[i];
@@ -285,7 +285,7 @@ class Simulator
         auto StartTime = std::chrono::system_clock::now();
 
         // allocate boid and flock memory
-        std::vector<Boid> &AllBoids = *(AllFlocks.begin()->Neighbourhood.GetAllBoidsPtr());
+        std::vector<Boid> &AllBoids = *(AllFlocks.begin()->second.Neighbourhood.GetAllBoidsPtr());
         numBoids = AllBoids.size();
         size_t vecSize = sizeof(float) * 2 * numBoids;
         size_t intSize = sizeof(int) * numBoids;
@@ -350,20 +350,9 @@ class Simulator
 
         //printf("%f\n",position[0]);
         UpdateBoidPosAndVel();     
-#pragma omp parallel num_threads(Params.NumThreads)
-    {
-#pragma for schedule(static)
-        for (size_t i = 0; i < AllFlocks.size(); i++)
-        {
-            AllFlocks[i].Delegate(omp_get_thread_num(), AllFlocks);
-        }
-#pragma omp barrier
-#pragma for schedule(static)
-        for (size_t i = 0; i < AllFlocks.size(); i++)
-        {
-            AllFlocks[i].AssignToFlock(omp_get_thread_num(), AllFlocks);
-        }
-    }
+        std::vector<Flock *> AllFlockPtrs = GetAllFlocksVector();
+        UpdateFlocks(AllFlockPtrs);
+
         auto EndTime = std::chrono::system_clock::now();
         std::chrono::duration<double> ElapsedTime = EndTime - StartTime;
         // save tracer data
@@ -378,13 +367,57 @@ class Simulator
         return ElapsedTime.count(); // return wall clock time diff
     }
     
+    std::vector<Flock *> GetAllFlocksVector() const
+    {
+        std::vector<Flock *> AllFlocksVec;
+        for (auto It = AllFlocks.begin(); It != AllFlocks.end(); It++)
+        {
+            assert(It != AllFlocks.end());
+            const Flock &F = It->second;
+            AllFlocksVec.push_back(const_cast<Flock *>(&F));
+        }
+        assert(AllFlocksVec.size() == AllFlocks.size());
+        return AllFlocksVec;
+    }
+
+    void UpdateFlocks(std::vector<Flock *> AllFlocksVec)
+    {
+#pragma omp parallel num_threads(Params.NumThreads) // spawns threads
+        {
+            /// NOTE: the following parallel operations are per-flocks, not per-boids
+#pragma omp barrier
+#pragma omp for schedule(static)
+            for (size_t i = 0; i < AllFlocksVec.size(); i++)
+            {
+                AllFlocksVec[i]->Delegate(omp_get_thread_num(), AllFlocksVec);
+            }
+#pragma omp barrier
+#pragma omp for schedule(static)
+            for (size_t i = 0; i < AllFlocksVec.size(); i++)
+            {
+                AllFlocksVec[i]->AssignToFlock(omp_get_thread_num(), AllFlocksVec);
+            }
+#pragma omp barrier
+#pragma omp for schedule(static)
+            for (size_t i = 0; i < AllFlocksVec.size(); i++)
+            {
+                AllFlocksVec[i]->ComputeBB();
+            }
+        }
+        // convert flock data to processor communications
+        Tracer::SaveFlockMatrix(AllFlocks);
+        // remove empty (invalid) flocks
+        Flock::CleanUp(AllFlocks);
+    }
+
     void Render()
     {
         // draw all the boids onto the frame
+        std::vector<Flock *> AllFlocksVec = GetAllFlocksVector();
 #pragma omp parallel for num_threads(Params.NumThreads) schedule(static)
-        for (size_t i = 0; i < AllFlocks.size(); i++)
+        for (size_t i = 0; i < AllFlocksVec.size(); i++)
         {
-            AllFlocks[i].Draw(I);
+            AllFlocksVec[i]->Draw(I);
         }
         // draw the target onto the frame
         I.ExportPPMImage();
