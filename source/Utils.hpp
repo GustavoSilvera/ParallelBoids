@@ -46,6 +46,7 @@ struct SimulatorParamsStruct
 struct FlockParamsStruct
 {
     size_t MaxSize, MaxNumComm, UseLocalNeighbourhoods;
+    double WeightFlockSize, WeightFlockDist;
 };
 
 struct ImageParamsStruct
@@ -135,6 +136,10 @@ inline void ParseParams(const std::string &FilePath)
             GlobalParams.TracerParams.TrackMem = stob(ParamValue);
         else if (!ParamName.compare("track_tick_t"))
             GlobalParams.TracerParams.TrackTickT = stob(ParamValue);
+        else if (!ParamName.compare("weight_flock_size"))
+            GlobalParams.FlockParams.WeightFlockSize = std::stod(ParamValue);
+        else if (!ParamName.compare("weight_flock_dist"))
+            GlobalParams.FlockParams.WeightFlockDist = std::stod(ParamValue);
         else
             continue;
     }

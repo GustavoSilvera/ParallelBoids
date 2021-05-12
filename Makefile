@@ -13,8 +13,8 @@ CXX = g++
 # CXX = clang++
 CFLAGS = -std=c++11 -Wall -Werror -pedantic -pthread -fopenmp -g 
 CFLAGS += -O3 # optimization
-CFLAGS += -DNDEBUG # comment to enforce asserts
-# CFLAGS += -DNTRACE # comment to trace memory accesses
+# CFLAGS += -DNDEBUG # comment to enforce asserts
+CFLAGS += -DNTRACE # comment to trace memory accesses
 
 
 NVCCFLAGS= -std=c++11 -O3 -m64 --gpu-architecture compute_61 -ccbin /usr/bin/gcc

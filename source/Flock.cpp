@@ -10,8 +10,8 @@ bool Flock::IsValidFlock() const
 {
     if (!Valid)
         return false;
-    if (Size() > Params.MaxSize)
-        return false;
+    // if (Size() > Params.MaxSize)
+    //     return false;
     return true;
 }
 
@@ -53,8 +53,8 @@ void Flock::Delegate(const int TID, const std::unordered_map<size_t, Flock> &All
 
     // Look through our neighbourhood
     const std::vector<Boid *> Boids = Neighbourhood.GetBoids();
-    std::vector<std::pair<double, size_t>> BestBoidFlocks(Boids.size(),                    // corresponding to Boids
-                                                          std::make_pair(1e300, FlockID)); // this flock
+    std::vector<std::pair<double, size_t>> BestBoidFlocks(Boids.size(),                // corresponding to Boids
+                                                          std::make_pair(0, FlockID)); // this flock
     for (auto It = AllFlocks.begin(); It != AllFlocks.end(); It++)
     {
         assert(It != AllFlocks.end());
@@ -75,12 +75,17 @@ void Flock::Delegate(const int TID, const std::unordered_map<size_t, Flock> &All
                     const double Dist = B->DistanceTo((*Peer));
                     /// NOTE: this is a very simple rule... only checking if
                     // their flock is larger/eq, then I send them over there
-                    bool FlockRule = (Size() <= F.Size()) && (Dist < B->Params.CollisionRadius);
+                    double FlockRule = 0;
+                    FlockRule += Params.WeightFlockSize * F.Size();
+                    if (Dist < B->Params.CollisionRadius)
+                        FlockRule += Params.WeightFlockDist * (1.0 / Dist);
+                    else
+                        FlockRule = 0; // ignore this Boid
 
-                    if (Dist < BestBoidFlocks[b].first && FlockRule)
+                    if (FlockRule > BestBoidFlocks[b].first)
                     {
                         // std::cout << Dist << std::endl;
-                        BestBoidFlocks[b] = std::make_pair(Dist, F.FlockID);
+                        BestBoidFlocks[b] = std::make_pair(FlockRule, F.FlockID);
                     }
                 }
             }
@@ -95,11 +100,10 @@ void Flock::Delegate(const int TID, const std::unordered_map<size_t, Flock> &All
 #ifndef NDEBUG
     // No boid left behind
     size_t NumBuckets = 0;
-    for (auto It = AllFlocks.begin(); It != AllFlocks.end(); It++)
+    for (auto It = Emigrants.begin(); It != Emigrants.end(); It++)
     {
-        const Flock F = It->second;
-        NumBuckets += Emigrants[F.FlockID].size();
-        for (const Boid &B : Emigrants[F.FlockID])
+        NumBuckets += It->second.size();
+        for (const Boid &B : It->second)
         {
             assert(B.IsValid());
         }
