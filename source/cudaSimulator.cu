@@ -12,27 +12,27 @@
 #include <driver_functions.h>
 
 struct GlobalConstants {
-    int numBoids;
+    size_t numBoids;
 
     float* position;
     float* velocity;
-    float* flockID; 
+    int* flockID; 
+    int* flockSize;
+};
 
-    float* flockCOM; 
-    float* flockSize;
-}
-
-
-__constant__ cudaGlobalConstants;
-float* cudaDevicePosition;
-float* cudaDeviceVelocity;
-float* cudaDeviceFlockID;
-float* cudaDeviceFlockCOM;
-float* cudaDeviceFlockSize;
-
+__constant__ GlobalConstants cuConstTickParams;
 class Simulator
 {
   public:
+    float* cudaDevicePosition;
+    float* cudaDeviceVelocity;
+    int* cudaDeviceFlockID;
+    int* cudaDeviceFlockSize;
+
+    float* position;
+    float* velocity;
+    int* flockID;
+    int* flockSize;
     Simulator()
     {
         Params = GlobalParams.SimulatorParams;
@@ -75,68 +75,85 @@ class Simulator
         std::cout << "Finished simulation! Took " << ElapsedTime << "s" << std::endl;
     }
 
+    /**
+     * Inserts the value v in the float2 array represented by arr
+     * @pre i < |arr|/2
+     */
+    void insertFloat2(float* arr, Vec2D v, size_t i) {
+        arr[2*i] = v[0];
+        arr[2*i+1] = v[1];
+    }
+
+    void InitBoidDataArrays() {
+        std::vector<Boid> &AllBoids = *(AllFlocks.begin()->Neighbourhood.GetAllBoidsPtr());
+        size_t numBoids = AllBoids.size();
+        size_t vecSize = sizeof(float) * 2 * numBoids;
+        size_t intSize = sizeof(int) * numBoids;
+
+        position = (float*)malloc(vecSize);
+        velocity = (float*)malloc(vecSize);
+        flockID = (int*)malloc(intSize);
+        flockSize = (int*)malloc(intSize);
+
+        for (size_t i=0; i < AllBoids.size(); i++)
+        {
+            Boid boid = AllBoids[i];
+            Vec2D pos = boid.Position;
+            Vec2D vel = boid.Velocity;
+            int fID = boid.FlockID;
+            int fSize = 1;
+
+            insertFloat2(position, pos, i);
+            insertFloat2(velocity, vel, i);
+            flockID[i] = fID;
+            flockSize[i] = fSize;
+        }
+    }
     /** 
      * Sets up the memory required for the cuda device code
      *
      * @return The time it took to setup. 
      */
     double Setup() {
+        auto StartTime = std::chrono::system_clock::now();
 
+        // allocate boid and flock memory
+        std::vector<Boid> &AllBoids = *(AllFlocks.begin()->Neighbourhood.GetAllBoidsPtr());
+        size_t numBoids = AllBoids.size();
+        size_t vecSize = sizeof(float) * 2 * numBoids;
+        size_t intSize = sizeof(int) * numBoids;
+        cudaMalloc(&cudaDevicePosition, vecSize);
+        cudaMalloc(&cudaDeviceVelocity, vecSize);
+        cudaMalloc(&cudaDeviceFlockID, intSize);
+        cudaMalloc(&flockSize, intSize);
+
+        InitBoidDataArrays();
+        
+        cudaMemcpy(cudaDevicePosition,position,vecSize,cudaMemcpyHostToDevice);
+        cudaMemcpy(cudaDeviceVelocity,velocity,vecSize,cudaMemcpyHostToDevice);
+        cudaMemcpy(cudaDeviceFlockID,flockID,intSize,cudaMemcpyHostToDevice);
+        cudaMemcpy(cudaDeviceFlockSize,flockSize,intSize,cudaMemcpyHostToDevice);
+
+        // set up constants struct for copying into device memory struct
+        GlobalConstants constParams;
+        constParams.numBoids = numBoids;
+        constParams.position = cudaDevicePosition; 
+        constParams.velocity = cudaDeviceVelocity;
+        constParams.flockID = cudaDeviceFlockID;
+        constParams.flockSize = flockSize;
+
+        cudaMemcpyToSymbol(cuConstTickParams, &constParams, sizeof(GlobalConstants));
+
+        auto EndTime = std::chrono::system_clock::now();
+        std::chrono::duration<double> ElapsedTime = EndTime - StartTime;
+
+        return ElapsedTime.count(); // return wall clock time diff
     }
 
     double Tick()
     {
         // Run our actual problem (boid computation)
         auto StartTime = std::chrono::system_clock::now();
-
-        /// TODO: use omp for (spawns threads) and omp barrier/single
-
-#ifndef NDEBUG
-        size_t BoidCount = 0;
-        for (auto A : AllFlocks)
-        {
-            BoidCount += A.Size();
-        }
-        assert(Params.NumBoids == BoidCount);
-#endif
-        if (!GlobalParams.FlockParams.UseParFlocks)
-        {
-            // get all the boids
-            std::vector<Boids> &Boids = AllFlocks[0].Neighbourhood;  
-            int N = Boids.size();
-
-
-        }
-#pragma omp parallel num_threads(Params.NumThreads) // spawns threads
-        {
-#pragma omp for schedule(static)
-            for (size_t i = 0; i < AllFlocks.size(); i++)
-            {
-                AllFlocks[i].SenseAndPlan(omp_get_thread_num(), AllFlocks);
-            }
-#pragma omp barrier
-#pragma omp for schedule(static)
-            for (size_t i = 0; i < AllFlocks.size(); i++)
-            {
-                AllFlocks[i].Act(Params.DeltaTime);
-            }
-#pragma omp barrier
-#pragma omp for schedule(static)
-            for (size_t i = 0; i < AllFlocks.size(); i++)
-            {
-                AllFlocks[i].Delegate(omp_get_thread_num(), AllFlocks);
-            }
-#pragma omp barrier
-#pragma omp for schedule(static)
-            for (size_t i = 0; i < AllFlocks.size(); i++)
-            {
-                AllFlocks[i].AssignToFlock(omp_get_thread_num(), AllFlocks);
-            }
-        }
-        // convert flock data to processor communications
-        Tracer::SaveFlockMatrix(AllFlocks);
-        // remove empty (invalid) flocks
-        Flock::CleanUp(AllFlocks);
         auto EndTime = std::chrono::system_clock::now();
         std::chrono::duration<double> ElapsedTime = EndTime - StartTime;
         // save tracer data
@@ -150,7 +167,7 @@ class Simulator
 
         return ElapsedTime.count(); // return wall clock time diff
     }
-
+    
     void Render()
     {
         // draw all the boids onto the frame
@@ -169,6 +186,7 @@ class Simulator
 SimulatorParamsStruct Simulator::Params;
 ImageParamsStruct Image::Params;
 TracerParamsStruct Tracer::Params;
+
 
 // global params struct
 ParamsStruct GlobalParams;

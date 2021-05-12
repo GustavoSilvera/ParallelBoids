@@ -113,8 +113,8 @@ class Image
         {
             for (size_t j = 0; j < Params.WindowY; j++)
             {
-                if (i < BorderSize || i > Params.WindowX - BorderSize || j < BorderSize ||
-                    j > Params.WindowY - BorderSize)
+                if (int(i) < int(BorderSize) || i > Params.WindowX - BorderSize || 
+                    int(j) < int(BorderSize) || j > Params.WindowY - BorderSize)
                 {
                     SetPixel(i, j, Colour(255, 255, 255));
                 }
