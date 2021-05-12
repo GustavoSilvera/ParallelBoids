@@ -3,9 +3,20 @@
 #include <cassert>
 #include <iostream>
 
+void Tracer::Initialize()
+{
+#ifndef NTRACE
+    Instance();
+#else
+    (void)0;
+#endif
+}
+
 void Tracer::InitFlockMatrix(const size_t NumFlocks)
 {
 #ifndef NTRACE
+    if (!Params.TrackMem)
+        return; // do nothing
     Tracer *T = Instance();
     for (size_t i = 0; i < NumFlocks; i++)
     {
@@ -21,6 +32,8 @@ void Tracer::InitFlockMatrix(const size_t NumFlocks)
 void Tracer::SaveFlockMatrix(const std::unordered_map<size_t, Flock> &AllFlocks)
 {
 #ifndef NTRACE
+    if (!Params.TrackMem)
+        return; // do nothing
     Tracer *T = Instance();
     assert(T->CommunicationMatrix.size() > 0);
     for (size_t FID = 0; FID < T->CommunicationMatrix.size(); FID++)
@@ -56,6 +69,8 @@ void Tracer::SaveFlockMatrix(const std::unordered_map<size_t, Flock> &AllFlocks)
 
 void Tracer::AddRead(const size_t F_Requestor, const size_t F_Holder, const Flock::FlockOp F)
 {
+    if (!Params.TrackMem)
+        return; // do nothing
 #ifndef NTRACE
     Tracer *T = Instance();
     assert(T->CommunicationMatrix.size() > 0);
@@ -80,6 +95,8 @@ void Tracer::AddRead(const size_t F_Requestor, const size_t F_Holder, const Floc
 
 void Tracer::AddReads(const size_t T_Requestor, const size_t T_Holder, const size_t Amnt = 1)
 {
+    if (!Params.TrackMem)
+        return; // do nothing
 #ifndef NTRACE
     Tracer *T = Instance();
     assert(T->MemoryOpMatrix.size() == Tracer::Params.NumThreads);
@@ -94,6 +111,8 @@ void Tracer::AddReads(const size_t T_Requestor, const size_t T_Holder, const siz
 
 void Tracer::AddFlockOps(const Tracer::FlockOps &FO)
 {
+    if (!Params.TrackMem)
+        return; // do nothing
 #ifndef NTRACE
     // sense & plan
     AddReads(FO.RequestorTIDs.SenseAndPlan, FO.HolderTIDs.SenseAndPlan, FO.SenseAndPlan.Reads);
@@ -108,6 +127,8 @@ void Tracer::AddFlockOps(const Tracer::FlockOps &FO)
 
 void Tracer::AddTickT(const double ElapsedTime)
 {
+    if (!Params.TrackTickT)
+        return; // do nothing
 #ifndef NTRACE
     Tracer *T = Instance();
     T->TickTimes.push_back(ElapsedTime);
@@ -120,22 +141,28 @@ void Tracer::Dump()
 {
 #ifndef NTRACE
     const Tracer *T = Instance();
-    std::cout << "Comms Matrix:" << std::endl;
-    for (const std::vector<MemoryOps> &MemoryRow : T->MemoryOpMatrix)
+    if (Params.TrackMem)
     {
-        std::cout << "[ ";
-        for (const MemoryOps &M : MemoryRow)
+        std::cout << "Comms Matrix:" << std::endl;
+        for (const std::vector<MemoryOps> &MemoryRow : T->MemoryOpMatrix)
         {
-            std::cout << M.Reads << ", ";
+            std::cout << "[ ";
+            for (const MemoryOps &M : MemoryRow)
+            {
+                std::cout << M.Reads << ", ";
+            }
+            std::cout << "]" << std::endl;
+        }
+    }
+    if (Params.TrackTickT)
+    {
+        std::cout << "Tick Timings" << std::endl << "[";
+        for (const double t : T->TickTimes)
+        {
+            std::cout << t << ", ";
         }
         std::cout << "]" << std::endl;
     }
-    std::cout << "Tick Timings" << std::endl << "[";
-    for (const double t : T->TickTimes)
-    {
-        std::cout << t << ", ";
-    }
-    std::cout << "]" << std::endl;
 #else
     std::cout << "Trace not executing (compiled with -DNTRACE)" << std::endl;
 #endif

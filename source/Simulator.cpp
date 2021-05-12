@@ -18,6 +18,16 @@ class Simulator
                   << GlobalParams.ImageParams.WindowX << ", " << GlobalParams.ImageParams.WindowY << ") world with "
                   << Params.NumThreads << " threads" << std::endl;
 
+        // Print out important params
+        std::string ParAxis = "FLOCKS";
+        if (!Params.ParallelizeAcrossFlocks)
+            ParAxis = "BOIDS";
+        std::string NeighMode = "LOCAL";
+        if (!GlobalParams.FlockParams.UseLocalNeighbourhoods)
+            NeighMode = "GLOBAL";
+        std::cout << "Parallelizing across " << ParAxis << " with a " << NeighMode << " neighbourhood layout"
+                  << std::endl;
+
         // Initialize neighbourhood layout for flocks before use
         Flock::InitNeighbourhoodLayout();
         // Spawn flocks
@@ -81,24 +91,46 @@ class Simulator
             AllFlocksVec.push_back(&F);
         }
         assert(AllFlocksVec.size() == AllFlocks.size());
+
 #pragma omp parallel num_threads(Params.NumThreads) // spawns threads
         {
             /// NOTE: the following parallel operations are per-boids
             if (!Params.ParallelizeAcrossFlocks)
             {
-                // only for the global-boid-neighbourhood layout
-                assert(GlobalParams.FlockParams.UseLocalNeighbourhoods == false);
-                std::vector<Boid> &AllBoids = *(AllFlocks.begin()->second.Neighbourhood.GetAllBoidsPtr());
-#pragma omp for schedule(static)
-                for (size_t i = 0; i < AllBoids.size(); i++)
+                if (!GlobalParams.FlockParams.UseLocalNeighbourhoods)
                 {
-                    AllBoids[i].SenseAndPlan(omp_get_thread_num(), AllFlocks);
-                }
+                    std::vector<Boid> &AllBoids = *(AllFlocks.begin()->second.Neighbourhood.GetAllBoidsPtr());
+#pragma omp for schedule(static)
+                    for (size_t i = 0; i < AllBoids.size(); i++)
+                    {
+                        AllBoids[i].SenseAndPlan(omp_get_thread_num(), AllFlocks);
+                    }
 #pragma omp barrier
 #pragma omp for schedule(static)
-                for (size_t i = 0; i < AllBoids.size(); i++)
+                    for (size_t i = 0; i < AllBoids.size(); i++)
+                    {
+                        AllBoids[i].Act(Params.DeltaTime);
+                    }
+                }
+                else
                 {
-                    AllBoids[i].Act(Params.DeltaTime);
+                    for (size_t i = 0; i < AllFlocks.size(); i++)
+                    {
+#pragma omp for schedule(static)
+                        for (Boid *B : AllFlocks[i].Neighbourhood.GetBoids())
+                        {
+                            B->SenseAndPlan(omp_get_thread_num(), AllFlocks);
+                        }
+                    }
+#pragma omp barrier
+                    for (size_t i = 0; i < AllFlocks.size(); i++)
+                    {
+#pragma omp for schedule(static)
+                        for (Boid *B : AllFlocks[i].Neighbourhood.GetBoids())
+                        {
+                            B->Act(Params.DeltaTime);
+                        }
+                    }
                 }
             }
             else
@@ -187,6 +219,7 @@ int main()
 {
     std::srand(0); // consistent seed
     ParseParams("params/params.ini");
+    Tracer::Initialize();
     Simulator Sim;
     Sim.Simulate();
     // Dump all tracer data

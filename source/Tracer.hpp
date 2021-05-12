@@ -9,6 +9,7 @@
 class Tracer
 {
   public:
+    static void Initialize();
     static void InitFlockMatrix(const size_t NumFlocks);
     static void SaveFlockMatrix(const std::unordered_map<size_t, Flock> &AllFlocks);
     // incrementors for reads/writes
@@ -30,7 +31,7 @@ class Tracer
         /// singleton class
         Params = GlobalParams.TracerParams;
         // only initializes static T the FIRST time
-        static Tracer *T = new Tracer(Params.NumThreads);
+        static Tracer *T = new Tracer(GlobalParams.SimulatorParams.NumThreads);
         return T;
     }
     static TracerParamsStruct Params;
