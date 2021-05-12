@@ -128,13 +128,13 @@ class Flock
 
     void Act(const double DeltaTime);
 
-    void Delegate(const int TID, const std::unordered_map<size_t, Flock> &Flocks);
+    void Delegate(const int TID, const std::vector<Flock *> &AllFlocks);
 
-    void AssignToFlock(const int TID, const std::unordered_map<size_t, Flock> &AllFlocks);
+    void AssignToFlock(const int TID, const std::vector<Flock *> &AllFlocks);
 
     void ComputeBB();
 
-    std::vector<const Flock *> NearestFlocks(const std::unordered_map<size_t, Flock> &AllFlocks) const;
+    std::vector<Flock *> NearestFlocks(const std::vector<Flock *> &AllFlocks) const;
 
     void Draw(Image &I) const;
 

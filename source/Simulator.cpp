@@ -193,13 +193,13 @@ class Simulator
 #pragma omp for schedule(static)
             for (size_t i = 0; i < AllFlocksVec.size(); i++)
             {
-                AllFlocksVec[i]->Delegate(omp_get_thread_num(), AllFlocks);
+                AllFlocksVec[i]->Delegate(omp_get_thread_num(), AllFlocksVec);
             }
 #pragma omp barrier
 #pragma omp for schedule(static)
             for (size_t i = 0; i < AllFlocksVec.size(); i++)
             {
-                AllFlocksVec[i]->AssignToFlock(omp_get_thread_num(), AllFlocks);
+                AllFlocksVec[i]->AssignToFlock(omp_get_thread_num(), AllFlocksVec);
             }
 #pragma omp barrier
 #pragma omp for schedule(static)
