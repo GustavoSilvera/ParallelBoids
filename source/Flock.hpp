@@ -112,21 +112,21 @@ class Flock
 
     size_t Size() const;
 
-    void SenseAndPlan(const int TID, const std::vector<Flock> &AllFlocks);
+    void SenseAndPlan(const int TID, const std::unordered_map<size_t, Flock> &AllFlocks);
 
     void Act(const double DeltaTime);
 
-    void Delegate(const int TID, const std::vector<Flock> &Flocks);
+    void Delegate(const int TID, const std::unordered_map<size_t, Flock> &Flocks);
 
-    void AssignToFlock(const int TID, const std::vector<Flock> &AllFlocks);
+    void AssignToFlock(const int TID, const std::unordered_map<size_t, Flock> &AllFlocks);
 
     void ComputeBB();
 
-    std::vector<const Flock *> NearestFlocks(const std::vector<Flock> &AllFlocks) const;
+    std::vector<const Flock *> NearestFlocks(const std::unordered_map<size_t, Flock> &AllFlocks) const;
 
     void Draw(Image &I) const;
 
-    static void CleanUp(std::vector<Flock> &AllFlocks);
+    static void CleanUp(std::unordered_map<size_t, Flock> &AllFlocks);
 };
 
 #endif

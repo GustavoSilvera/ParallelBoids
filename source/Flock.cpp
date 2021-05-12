@@ -20,7 +20,7 @@ size_t Flock::Size() const
     return Neighbourhood.Size();
 }
 
-void Flock::SenseAndPlan(const int TID, const std::vector<Flock> &AllFlocks)
+void Flock::SenseAndPlan(const int TID, const std::unordered_map<size_t, Flock> &AllFlocks)
 {
     assert(IsValidFlock()); // make sure this flock is valid
     // assert(NLayout::GetType() == NLayout::Local); // only on Local type
@@ -28,7 +28,7 @@ void Flock::SenseAndPlan(const int TID, const std::vector<Flock> &AllFlocks)
     std::vector<Boid *> Boids = Neighbourhood.GetBoids();
     for (Boid *B : Boids)
     {
-        B->SenseAndPlan(TID, AllFlocks);
+        B->SenseAndPlan(TID, this, AllFlocks);
     }
 }
 
@@ -43,7 +43,7 @@ void Flock::Act(const double DeltaTime)
     }
 }
 
-void Flock::Delegate(const int TID, const std::vector<Flock> &AllFlocks)
+void Flock::Delegate(const int TID, const std::unordered_map<size_t, Flock> &AllFlocks)
 {
     assert(IsValidFlock()); // make sure this flock is valid
     TIDs.Delegate = TID;
@@ -82,9 +82,8 @@ void Flock::Delegate(const int TID, const std::vector<Flock> &AllFlocks)
                     bool FlockRule = (Size() <= F->Size());
                     if (FlockRule)
                     {
-                        Emigrants[F->FlockID].push_back((*B));                          // dereference from Boid*
-                        Emigrants[F->FlockID].back().FlockID = F->FlockID;              // update latest bucket's FiD
-                        Emigrants[F->FlockID].back().FlockPtr = const_cast<Flock *>(F); // new FlockPtr
+                        Emigrants[F->FlockID].push_back((*B));             // dereference from Boid*
+                        Emigrants[F->FlockID].back().FlockID = F->FlockID; // update latest bucket's FiD
                         Emigrated = true; // indicate that this boid is part of the emigration bucket
                     }
                     break; // don't need to check the rest bc they are all in the same flock
@@ -105,7 +104,6 @@ void Flock::Delegate(const int TID, const std::vector<Flock> &AllFlocks)
         {
             // stores all the boids (unchanged) into what will be this flock's new neighbourhood
             Emigrants[FlockID].push_back((*B));
-            Emigrants[FlockID].back().FlockPtr = const_cast<Flock *>(this); // new FlockPtr
         }
     }
 #ifndef NDEBUG
@@ -114,21 +112,26 @@ void Flock::Delegate(const int TID, const std::vector<Flock> &AllFlocks)
     for (const Flock *F : NearbyFlocks)
     {
         NumLeaving += Emigrants[F->FlockID].size();
+        for (const Boid &B : Emigrants[F->FlockID])
+        {
+            assert(B.IsValid());
+        }
     }
     size_t NumStaying = Emigrants[FlockID].size();
     assert(NumLeaving + NumStaying == Neighbourhood.Size());
 #endif
 }
 
-void Flock::AssignToFlock(const int TID, const std::vector<Flock> &AllFlocks)
+void Flock::AssignToFlock(const int TID, const std::unordered_map<size_t, Flock> &AllFlocks)
 {
     assert(IsValidFlock());
     TIDs.AssignToFlock = TID;
     if (AllFlocks.size() > 1) // if this is the last flock, do nothing
     {
         Neighbourhood.ClearLocal(); // clear my local neighbourhood
-        for (const Flock &Other : AllFlocks)
+        for (auto It = AllFlocks.begin(); It != AllFlocks.end(); It++)
         {
+            const Flock &Other = It->second;
             // Tracer::AddRead(FlockID, Other.FlockID, Flock::AssignToFlockOp);
             // O(1) dictionary accesses
             if (Other.Emigrants.find(FlockID) != Other.Emigrants.end())
@@ -186,20 +189,21 @@ void Flock::ComputeBB()
 //     OtherNeighbourhood.pop_back(); // destructive
 // }
 
-std::vector<const Flock *> Flock::NearestFlocks(const std::vector<Flock> &AllFlocks) const
+std::vector<const Flock *> Flock::NearestFlocks(const std::unordered_map<size_t, Flock> &AllFlocks) const
 {
     // finds the flocks physically nearest to this one
     std::vector<const Flock *> NearbyFlocks;
     /// TODO: figure out a better approach than this naive way
-    std::vector<size_t> NearbyIdxs;
+    std::vector<size_t> NearbyFIDs;
     const Vec2D Centroid = BB.Centroid();
     for (size_t i = 0; i < Params.MaxNumComm; i++)
     {
-        double NearestDist = 1e300; // big num
-        size_t NearestIdx = 0;
-        for (size_t j = 0; j < AllFlocks.size(); j++)
+        double NearestDist = 1e300;                       // big num
+        size_t NearestFlockID = AllFlocks.begin()->first; // first key
+        size_t j = 0;
+        for (auto It = AllFlocks.begin(); It != AllFlocks.end(); It++)
         {
-            const Flock &F = AllFlocks[j];
+            const Flock &F = It->second;
             if (!F.IsValidFlock())
                 continue; // ignore invalid flocks
             // distance to center of bounding boxes (centroids)
@@ -208,9 +212,9 @@ std::vector<const Flock *> Flock::NearestFlocks(const std::vector<Flock> &AllFlo
             {
                 // make sure this boid hasn't been selected before
                 bool AlreadyAdded = false;
-                for (const size_t ExistingNearbyIdx : NearbyIdxs)
+                for (const size_t ExistingNearbyFID : NearbyFIDs)
                 {
-                    if (j == ExistingNearbyIdx)
+                    if (F.FlockID == ExistingNearbyFID)
                     {
                         AlreadyAdded = true;
                         break;
@@ -219,12 +223,13 @@ std::vector<const Flock *> Flock::NearestFlocks(const std::vector<Flock> &AllFlo
                 if (!AlreadyAdded)
                 {
                     NearestDist = FDist;
-                    NearestIdx = j;
+                    NearestFlockID = F.FlockID;
                 }
             }
+            j++;
         }
-        NearbyFlocks.push_back(&AllFlocks[NearestIdx]);
-        NearbyIdxs.push_back(NearestIdx);
+        NearbyFlocks.push_back(&(AllFlocks.find(NearestFlockID)->second)); // ptr to flock
+        NearbyFIDs.push_back(NearestFlockID);
     }
     return NearbyFlocks;
 }
@@ -242,17 +247,34 @@ void Flock::Draw(Image &I) const
     }
 }
 
-void Flock::CleanUp(std::vector<Flock> &AllFlocks)
+void Flock::CleanUp(std::unordered_map<size_t, Flock> &AllFlocks)
 {
     /// NOTE: this can probably be parallelized as well...
     // remove all empty (invalid) flocks
     /// TODO: Implement this with 210-style filter for O(logn) span
+    // for vector
     // auto IsInvalid = [](const Flock &F) { return !F.Valid; };
     // AllFlocks.erase(std::remove_if(AllFlocks.begin(), AllFlocks.end(), IsInvalid), AllFlocks.end());
-#ifndef NDEBUG
-    for (const Flock &A : AllFlocks)
+
+    // for unordered_map
+    // graciously retrieved from https://en.cppreference.com/w/cpp/container/unordered_map/erase_if
+    for (auto i = AllFlocks.begin(), last = AllFlocks.end(); i != last;)
     {
-        assert(A.IsValidFlock());
+        if (!(i->second.Valid))
+        {
+            i = AllFlocks.erase(i);
+        }
+        else
+        {
+            ++i;
+        }
+    }
+#ifndef NDEBUG
+    for (auto It = AllFlocks.begin(), Last = AllFlocks.end(); It != Last; It++)
+    {
+        assert(It != AllFlocks.end());
+        const Flock &F = It->second;
+        assert(F.IsValidFlock());
     }
 #endif
 }

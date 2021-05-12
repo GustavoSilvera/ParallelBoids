@@ -23,7 +23,7 @@ class Simulator
         // Spawn flocks
         for (size_t i = 0; i < Params.NumBoids; i++)
         {
-            AllFlocks.push_back(Flock(i, 1));
+            AllFlocks[i] = Flock(i, 1);
         }
 
         // begin tracking which flocks communicate with which
@@ -40,7 +40,7 @@ class Simulator
     /// TODO: we can use the SenseAndPlan flock optimization if we change this vector
     // to an associative container (unordered_map) so we can get O(1) access regardless
     // of the resizing
-    std::vector<Flock> AllFlocks;
+    std::unordered_map<size_t, Flock> AllFlocks;
     Image I;
 
     void Simulate()
@@ -61,16 +61,26 @@ class Simulator
 
 #ifndef NDEBUG
         size_t BoidCount = 0;
-        for (auto A : AllFlocks)
+        for (auto It = AllFlocks.begin(); It != AllFlocks.end(); It++)
         {
-            BoidCount += A.Size();
-            for (const Boid *B : A.Neighbourhood.GetBoids())
+            assert(It != AllFlocks.end());
+            const Flock &F = It->second;
+            BoidCount += F.Size();
+            for (const Boid *B : F.Neighbourhood.GetBoids())
             {
                 assert(B->IsValid());
             }
         }
         assert(Params.NumBoids == BoidCount);
 #endif
+        std::vector<Flock *> AllFlocksVec;
+        for (auto It = AllFlocks.begin(); It != AllFlocks.end(); It++)
+        {
+            assert(It != AllFlocks.end());
+            Flock &F = It->second;
+            AllFlocksVec.push_back(&F);
+        }
+        assert(AllFlocksVec.size() == AllFlocks.size());
 #pragma omp parallel num_threads(Params.NumThreads) // spawns threads
         {
             /// NOTE: the following parallel operations are per-boids
@@ -78,11 +88,11 @@ class Simulator
             {
                 // only for the global-boid-neighbourhood layout
                 assert(GlobalParams.FlockParams.UseLocalNeighbourhoods == false);
-                std::vector<Boid> &AllBoids = *(AllFlocks.begin()->Neighbourhood.GetAllBoidsPtr());
+                std::vector<Boid> &AllBoids = *(AllFlocks.begin()->second.Neighbourhood.GetAllBoidsPtr());
 #pragma omp for schedule(static)
                 for (size_t i = 0; i < AllBoids.size(); i++)
                 {
-                    AllBoids[i].SenseAndPlan(omp_get_thread_num(), AllBoids);
+                    AllBoids[i].SenseAndPlan(omp_get_thread_num(), AllFlocks, AllBoids);
                 }
 #pragma omp barrier
 #pragma omp for schedule(static)
@@ -95,35 +105,35 @@ class Simulator
             {
                 // parallelizing across flocks
 #pragma omp for schedule(static)
-                for (size_t i = 0; i < AllFlocks.size(); i++)
+                for (size_t i = 0; i < AllFlocksVec.size(); i++)
                 {
-                    AllFlocks[i].SenseAndPlan(omp_get_thread_num(), AllFlocks);
+                    AllFlocksVec[i]->SenseAndPlan(omp_get_thread_num(), AllFlocks);
                 }
 #pragma omp barrier
 #pragma omp for schedule(static)
-                for (size_t i = 0; i < AllFlocks.size(); i++)
+                for (size_t i = 0; i < AllFlocksVec.size(); i++)
                 {
-                    AllFlocks[i].Act(Params.DeltaTime);
+                    AllFlocksVec[i]->Act(Params.DeltaTime);
                 }
             }
             /// NOTE: the following parallel operations are per-flocks, not per-boids
 #pragma omp barrier
 #pragma omp for schedule(static)
-            for (size_t i = 0; i < AllFlocks.size(); i++)
+            for (size_t i = 0; i < AllFlocksVec.size(); i++)
             {
-                AllFlocks[i].Delegate(omp_get_thread_num(), AllFlocks);
+                AllFlocksVec[i]->Delegate(omp_get_thread_num(), AllFlocks);
             }
 #pragma omp barrier
 #pragma omp for schedule(static)
-            for (size_t i = 0; i < AllFlocks.size(); i++)
+            for (size_t i = 0; i < AllFlocksVec.size(); i++)
             {
-                AllFlocks[i].AssignToFlock(omp_get_thread_num(), AllFlocks);
+                AllFlocksVec[i]->AssignToFlock(omp_get_thread_num(), AllFlocks);
             }
 #pragma omp barrier
 #pragma omp for schedule(static)
-            for (size_t i = 0; i < AllFlocks.size(); i++)
+            for (size_t i = 0; i < AllFlocksVec.size(); i++)
             {
-                AllFlocks[i].ComputeBB();
+                AllFlocksVec[i]->ComputeBB();
             }
         }
         // convert flock data to processor communications
@@ -147,10 +157,17 @@ class Simulator
     void Render()
     {
         // draw all the boids onto the frame
-#pragma omp parallel for num_threads(Params.NumThreads) schedule(static)
-        for (size_t i = 0; i < AllFlocks.size(); i++)
+        std::vector<Flock *> AllFlocksVec;
+        for (auto It = AllFlocks.begin(); It != AllFlocks.end(); It++)
         {
-            AllFlocks[i].Draw(I);
+            assert(It != AllFlocks.end());
+            Flock &F = It->second;
+            AllFlocksVec.push_back(&F);
+        }
+#pragma omp parallel for num_threads(Params.NumThreads) schedule(static)
+        for (size_t i = 0; i < AllFlocksVec.size(); i++)
+        {
+            AllFlocksVec[i]->Draw(I);
         }
         // draw the target onto the frame
         I.ExportPPMImage();

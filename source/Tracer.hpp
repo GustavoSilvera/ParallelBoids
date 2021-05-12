@@ -10,7 +10,7 @@ class Tracer
 {
   public:
     static void InitFlockMatrix(const size_t NumFlocks);
-    static void SaveFlockMatrix(const std::vector<Flock> &AllFlocks);
+    static void SaveFlockMatrix(const std::unordered_map<size_t, Flock> &AllFlocks);
     // incrementors for reads/writes
     // static void AddWrite(const size_t F_Requestor, const size_t F_Holder, const Flock::FlockOp F);
     static void AddRead(const size_t F_Requestor, const size_t F_Holder, const Flock::FlockOp F);

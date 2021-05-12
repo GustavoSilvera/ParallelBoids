@@ -37,7 +37,6 @@ class Boid
         Position = B.Position;
         Velocity = B.Velocity;
         FlockID = B.FlockID;
-        FlockPtr = B.FlockPtr;
         BoidID = B.BoidID;
     }
 
@@ -46,16 +45,16 @@ class Boid
     Vec2D a1, a2, a3;
     static BoidParamsStruct Params;
     size_t FlockID, BoidID, ThreadID;
-    Flock *FlockPtr = nullptr;
 
     bool IsValid() const;
 
     size_t GetFlockID() const;
 
     // for parallelizing across flocks
-    void SenseAndPlan(const int TID, const std::vector<Flock> &AllFlocks);
+    void SenseAndPlan(const int TID, const Flock *FlockPtr, const std::unordered_map<size_t, Flock> &AllFlocks);
     // for parallelizing across boids
-    void SenseAndPlan(const int TID, const std::vector<Boid> &AllBoids);
+    void SenseAndPlan(const int TID, const std::unordered_map<size_t, Flock> &AllFlocks,
+                      const std::vector<Boid> &AllBoids);
 
     void Plan(const Boid &B, Vec2D &RCOM, Vec2D &RCOV, Vec2D &Sep, size_t &NC) const;
 

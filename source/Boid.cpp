@@ -9,9 +9,10 @@ BoidParamsStruct Boid::Params;
 
 bool Boid::IsValid() const
 {
-    if (FlockPtr == nullptr)
+    if (BoidID > NumBoids)
         return false;
-    assert(FlockPtr->FlockID != FlockID);
+    if (FlockID > NumBoids)
+        return false;
     return true;
 }
 
@@ -20,7 +21,7 @@ size_t Boid::GetFlockID() const
     return FlockID;
 }
 
-void Boid::SenseAndPlan(const int TID, const std::vector<Flock> &AllFlocks)
+void Boid::SenseAndPlan(const int TID, const Flock *FlockPtr, const std::unordered_map<size_t, Flock> &AllFlocks)
 {
     // reset current force factors
     assert(IsValid());
@@ -32,8 +33,11 @@ void Boid::SenseAndPlan(const int TID, const std::vector<Flock> &AllFlocks)
     // begin sensing all other boids in all other flocks
     ThreadID = TID;
     assert(FlockPtr->IsValidFlock());
-    for (const Flock &F : AllFlocks)
+    for (auto It = AllFlocks.begin(); It != AllFlocks.end(); It++)
     {
+        assert(It != AllFlocks.end());
+        const Flock &F = It->second;
+
         assert(F.IsValidFlock());
         // if flock is close enough (correct bc bounding boxes)
         if (F.BB.IntersectsBB(FlockPtr->BB)) // if flock is close enough
@@ -41,7 +45,6 @@ void Boid::SenseAndPlan(const int TID, const std::vector<Flock> &AllFlocks)
             std::vector<Boid *> Boids = F.Neighbourhood.GetBoids();
             for (const Boid *B : Boids)
             {
-                std::cout << "planning" << std::endl;
                 // begin planning for this boid for each boid that is sensed
                 Plan((*B), RelCOM, RelCOV, Sep, NumCloseby);
             }
@@ -56,7 +59,8 @@ void Boid::SenseAndPlan(const int TID, const std::vector<Flock> &AllFlocks)
     }
 }
 
-void Boid::SenseAndPlan(const int TID, const std::vector<Boid> &AllBoids)
+void Boid::SenseAndPlan(const int TID, const std::unordered_map<size_t, Flock> &AllFlocks,
+                        const std::vector<Boid> &AllBoids)
 {
     assert(IsValid());
     // reset current force factors
@@ -68,6 +72,11 @@ void Boid::SenseAndPlan(const int TID, const std::vector<Boid> &AllBoids)
     /// NOTE: that thread ID's are handled by the Simulator openmp, not Flocks anymore
     ThreadID = TID;
     // begin sensing all other boids in all other flocks
+
+    // getting other flocks
+    auto It = AllFlocks.find(FlockID);
+    assert(It != AllFlocks.end());
+    const Flock &OurFlock = It->second;
 
     // use associative containers to do fast checks for boids
     std::unordered_set<size_t> FarAwayFlocks;
@@ -83,11 +92,15 @@ void Boid::SenseAndPlan(const int TID, const std::vector<Boid> &AllBoids)
         }
         else
         {
+            // get their flock
+            auto It2 = AllFlocks.find(B.FlockID); // O(1) lookup
+            assert(It2 != AllFlocks.end());
+            const Flock &B_Flock = It2->second;
             // first check if the boid is in a far away flock
             if (FarAwayFlocks.find(B.FlockID) == FarAwayFlocks.end())
             {
                 // if flock is too far away, add it to the "ignore" set
-                if (B.FlockPtr->BB.IntersectsBB(FlockPtr->BB))
+                if (B_Flock.BB.IntersectsBB(OurFlock.BB))
                 {
                     // now we know this boid is in a "close enough" flock
                     // so we don't need to compute intersections anymore

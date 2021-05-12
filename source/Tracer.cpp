@@ -18,21 +18,27 @@ void Tracer::InitFlockMatrix(const size_t NumFlocks)
 #endif
 }
 
-void Tracer::SaveFlockMatrix(const std::vector<Flock> &AllFlocks)
+void Tracer::SaveFlockMatrix(const std::unordered_map<size_t, Flock> &AllFlocks)
 {
 #ifndef NTRACE
     Tracer *T = Instance();
     assert(T->CommunicationMatrix.size() > 0);
     for (size_t FID = 0; FID < T->CommunicationMatrix.size(); FID++)
     {
+        auto It = AllFlocks.find(FID);
+        assert(It != AllFlocks.end());
+        const Flock &F = It->second;
         // for FID being the requestor flock ID
         for (size_t FID2 = 0; FID2 < T->CommunicationMatrix[FID].size(); FID2++)
         {
+            auto It2 = AllFlocks.find(FID2);
+            assert(It2 != AllFlocks.end());
+            const Flock &F2 = It2->second;
             // for FID2 being the holder flock ID
             FlockOps &FO = T->CommunicationMatrix[FID][FID2];
             /// NOTE: assigning thread ID's can only be done AFTER all ops have completed
-            FO.RequestorTIDs = AllFlocks[FID].TIDs;
-            FO.HolderTIDs = AllFlocks[FID2].TIDs;
+            FO.RequestorTIDs = F.TIDs;
+            FO.HolderTIDs = F2.TIDs;
             Tracer::AddFlockOps(FO);
         }
     }
