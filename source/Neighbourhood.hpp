@@ -11,7 +11,7 @@ class NLayout // options bs local and global boid layout
 {
   public:
     NLayout() = default;
-    void NewBoid(const size_t FlockID);
+    void NewBoid(Flock *FP, const size_t FlockID);
     size_t Size() const;
     void ClearLocal();
     bool IsValid() const;

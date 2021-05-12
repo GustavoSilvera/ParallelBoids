@@ -41,6 +41,12 @@ bool NLayout::IsValid() const
         if (BoidsGlobal[bID].FlockID != FlockID)
             return false;
     }
+    // auto Boids = GetBoids();
+    // for (const Boid *B : Boids)
+    // {
+    //     if (!B->IsValid())
+    //         return false;
+    // }
     // no boid left behind (VERY EXPENSIVE, only need to be done once)
     if (FlockID == 0) // arbitrary random FlockID
     {
@@ -57,16 +63,18 @@ bool NLayout::IsValid() const
     for (const Boid &B : BoidsLocal)
     {
         if (B.FlockID != FlockID)
-        {
             return false;
-        }
+        if (!B.IsValid())
+            return false;
     }
     return true;
 }
 
-void NLayout::NewBoid(const size_t FID)
+void NLayout::NewBoid(Flock *FP, const size_t FID)
 {
     Boid NewBoidStruct(FID);
+    /// TODO: move to constructor
+    assert(NewBoidStruct.IsValid());
     FlockID = FID;
     if (UsingLayout == Local)
     {

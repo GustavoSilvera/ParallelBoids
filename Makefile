@@ -7,11 +7,11 @@ OBJS += $(OBJ_DIR)/Boid.o $(OBJ_DIR)/Neighbourhood.o
 OBJS += $(OBJ_DIR)/Tracer.o # all the cpp obj files
 OBJS += cudaSimulator.o # cuda files
 
-CXX = g++
-# CXX = clang++
+# CXX = g++
+CXX = clang++
 CFLAGS = -std=c++11 -Wall -Werror -pedantic -pthread -fopenmp -g 
 CFLAGS += -O3 # optimization
-CFLAGS += -DNDEBUG # comment to enforce asserts
+# CFLAGS += -DNDEBUG # comment to enforce asserts
 CFLAGS += -DNTRACE # comment to trace memory accesses
 
 
