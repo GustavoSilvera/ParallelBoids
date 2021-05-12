@@ -43,14 +43,10 @@ struct SimulatorParamsStruct
     bool ParallelizeAcrossFlocks, RenderingMovie;
 };
 
-struct TracerParamsStruct
-{
-    size_t NumThreads;
-};
-
 struct FlockParamsStruct
 {
     size_t MaxSize, MaxNumComm, UseLocalNeighbourhoods;
+    double WeightFlockSize, WeightFlockDist;
 };
 
 struct ImageParamsStruct
@@ -58,13 +54,18 @@ struct ImageParamsStruct
     size_t WindowX, WindowY;
 };
 
+struct TracerParamsStruct
+{
+    bool TrackMem, TrackTickT;
+};
+
 struct ParamsStruct
 {
     BoidParamsStruct BoidParams;
     SimulatorParamsStruct SimulatorParams;
-    TracerParamsStruct TracerParams;
     FlockParamsStruct FlockParams;
     ImageParamsStruct ImageParams;
+    TracerParamsStruct TracerParams;
 };
 
 // global params (extern for multiple .o files)
@@ -98,10 +99,7 @@ inline void ParseParams(const std::string &FilePath)
         else if (!ParamName.compare("num_iters"))
             GlobalParams.SimulatorParams.NumIterations = std::stoi(ParamValue);
         else if (!ParamName.compare("num_threads"))
-        {
             GlobalParams.SimulatorParams.NumThreads = std::stoi(ParamValue);
-            GlobalParams.TracerParams.NumThreads = std::stoi(ParamValue);
-        }
         else if (!ParamName.compare("timestep"))
             GlobalParams.SimulatorParams.DeltaTime = std::stod(ParamValue);
         else if (!ParamName.compare("boid_radius"))
@@ -134,6 +132,14 @@ inline void ParseParams(const std::string &FilePath)
             GlobalParams.FlockParams.MaxNumComm = std::stoi(ParamValue);
         else if (!ParamName.compare("is_local_neighbourhood"))
             GlobalParams.FlockParams.UseLocalNeighbourhoods = stob(ParamValue);
+        else if (!ParamName.compare("track_mem"))
+            GlobalParams.TracerParams.TrackMem = stob(ParamValue);
+        else if (!ParamName.compare("track_tick_t"))
+            GlobalParams.TracerParams.TrackTickT = stob(ParamValue);
+        else if (!ParamName.compare("weight_flock_size"))
+            GlobalParams.FlockParams.WeightFlockSize = std::stod(ParamValue);
+        else if (!ParamName.compare("weight_flock_dist"))
+            GlobalParams.FlockParams.WeightFlockDist = std::stod(ParamValue);
         else
             continue;
     }

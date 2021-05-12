@@ -4,8 +4,10 @@ CUDA_TARGET = CudaSimulator
 OBJ_DIR = objs
 OUT_DIR = out
 
-CPU_OBJS += $(OBJ_DIR)/Simulator.o $(OBJ_DIR)/Flock.o $(OBJ_DIR)/Boid.o $(OBJ_DIR)/Neighbourhood.o $(OBJ_DIR)/Tracer.o
-GPU_OBJS += $(OBJ_DIR)/cudaSimulator.o $(OBJ_DIR)/Flock.o $(OBJ_DIR)/Boid.o $(OBJ_DIR)/Neighbourhood.o $(OBJ_DIR)/Tracer.o
+OBJS = $(OBJ_DIR)/Flock.o $(OBJ_DIR)/Boid.o $(OBJ_DIR)/Neighbourhood.o $(OBJ_DIR)/Tracer.o
+
+CPU_OBJS += $(OBJ_DIR)/Simulator.o $(OBJS)
+GPU_OBJS += $(OBJ_DIR)/cudaSimulator.o $(OBJS)
 
 CXX = g++
 # CXX = clang++

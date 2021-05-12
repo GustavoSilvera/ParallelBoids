@@ -215,6 +215,18 @@ class Image
         }
     }
 
+    void DrawStrokedRect(const double TLX, const double TLY, const double BRX, const double BRY)
+    {
+        const Vec2D TopLeft(TLX, TLY);
+        const Vec2D TopRight(BRX, TLY);
+        const Vec2D BottomLeft(TLX, BRY);
+        const Vec2D BottomRight(BRX, BRY);
+        DrawLine(TopLeft, TopRight, Colour(255, 0, 0));
+        DrawLine(TopLeft, BottomLeft, Colour(255, 0, 0));
+        DrawLine(BottomRight, TopRight, Colour(255, 0, 0));
+        DrawLine(BottomRight, BottomLeft, Colour(255, 0, 0));
+    }
+
     void ExportPPMImage()
     {
         if (NumExported > MaxFrames)
