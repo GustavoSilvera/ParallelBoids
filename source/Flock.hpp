@@ -67,6 +67,8 @@ class Flock
 
     void Act(const double DeltaTime);
 
+    void UpdateCOM();
+
     void Delegate(const int TID, const std::vector<Flock> &Flocks);
 
     void AssignToFlock(const int TID, const std::vector<Flock> &AllFlocks);

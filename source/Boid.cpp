@@ -27,6 +27,8 @@ void Boid::SenseAndPlan(const Flock *FlockPtr, const std::vector<Flock> &AllFloc
     for (const Flock &F : AllFlocks)
     {
         // if flock is close enough
+        /// NOTE: technically this optimization may not be correct for all cases bc there could
+        // be a far away flock with a nearby boid (outlier in that flock)
         // if ((F.COM - FlockPtr->COM).Size() < 2 * Params.NeighbourhoodRadius)
         // {
         std::vector<Boid *> Boids = F.Neighbourhood.GetBoids();

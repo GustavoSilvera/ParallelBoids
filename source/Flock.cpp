@@ -47,6 +47,20 @@ void Flock::Act(const double DeltaTime)
     COM /= Size(); // we know Neighbourhood.size() > 0 bc Valid
 }
 
+void Flock::UpdateCOM()
+{
+    /// NOTE: this is needed because when parallelizing across Boids, all the boids
+    // act simultaneously and without a concept of a "Flock", so this is done after the
+    // fact
+    COM = Vec2D(0, 0);
+    std::vector<Boid *> Boids = Neighbourhood.GetBoids();
+    for (const Boid *B : Boids)
+    {
+        COM += B->Position; // updates COM based off the most up-to-date boid positions
+    }
+    COM /= Size();
+}
+
 void Flock::Delegate(const int TID, const std::vector<Flock> &AllFlocks)
 {
     assert(IsValidFlock()); // make sure this flock is valid
