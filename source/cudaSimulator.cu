@@ -12,16 +12,17 @@
 #include <cuda_runtime.h>
 #include <driver_functions.h>
 
-struct GlobalConstants {
+struct GlobalBoidData {
     size_t numBoids;
 
     float* position;
     float* velocity;
+    float* acceleration;
     int* flockID; 
     int* flockSize;
 };
 
-__constant__ GlobalConstants cuConstBoidData;
+__constant__ GlobalBoidData cuConstBoidData;
 __constant__ ParamsStruct cuConstGlobalParams;
 
 /** @return the result of adding the inputs together */
@@ -37,31 +38,32 @@ __device__ float2 operator-(const float2 A, const float2 B)
 }
 
 /** @return the result of multiplying each element of A by v */
-__device__ float2 operator*(const float2 A, const int v) 
+__device__ float2 operator*(const float2 A, const float v) 
 {
     return make_float2(A.x * v, A.y * v);
 }
 
 /** @return the result of dividing each element of A by v */
-__device__ float2 operator/(const float2 A, const int v) 
+__device__ float2 operator/(const float2 A, const float v) 
 {
     return make_float2(A.x / v, A.y / v);
 }
 
 /** @return the square of the l2 norm of the specified vector */
-__device__ int sizeSqrd (float2 A) 
+__device__ float sizeSqrd (float2 A) 
 {
     return A.x*A.x + A.y*A.y;
 }
 
 /** @return whether or not A lies beyond a distance of radius R from B */
-__device__ bool distGT (const float2 A, const float2 B, const int R)
+__device__ bool distGT (const float2 A, const float2 B, const float R)
 {
-    return sizeSqrd(A-B) > R*R;
+    // printf("A: (%.4f,%.4f)  || B: (%.4f,%.4f) || sizeSqrd(A-B): %.4f || R*R: %.4f\n", A.x,A.y,B.x,B.y,sizeSqrd(A-B),R*R);
+    return sizeSqrd(A-B) > (R*R);
 }
 
 /** @return whether or not A lies within a distance of radius R from B */
-__device__ bool distLT (const float2 A, const float2 B, const int R)
+__device__ bool distLT (const float2 A, const float2 B, const float R)
 {
     return sizeSqrd(A-B) < R*R;
 }
@@ -82,13 +84,17 @@ __device__ float2 limitMagnitudeKernel(const float2 A, const double maxMag)
  * Computes the acceleration for the boid indexed by index in the current
  * tick.
  */ 
-__device__ void 
-senseAndPlanKernel(float2 &a1, float2 &a2, float2 &a3, int index) 
+__global__ void 
+senseAndPlanKernel() 
 {
+    const int index = blockIdx.x + threadIdx.x;
     int N = cuConstBoidData.numBoids;
+    float2 a1,a2,a3;
     float2* position = (float2*)cuConstBoidData.position;
     float2* velocity = (float2*)cuConstBoidData.velocity;
+    float2* acceleration = (float2*)cuConstBoidData.acceleration;
 
+    //printf("%f\n",position[0].x);
     BoidParamsStruct boidParams = cuConstGlobalParams.BoidParams;
 
     float2 posUs = position[index];
@@ -98,69 +104,81 @@ senseAndPlanKernel(float2 &a1, float2 &a2, float2 &a3, int index)
     float2 relCOV = make_float2(0.0,0.0);
     float2 sep = make_float2(0.0,0.0);
 
+    // printf("nborradius: %f\n", boidParams.NeighbourhoodRadius);
     int numCloseBy = 0;
     for(size_t i = 0; i < N; i++) {
         float2 posThem = position[i];
         float2 velThem = velocity[i];
-
         if (i != index 
             && !distGT(posUs,posThem, boidParams.NeighbourhoodRadius)) 
         {
+            // printf("N: %d || i: %d || index: %d || posUs: %8.4f || posThem: %8.4f || relCOM: %8.4f || sep: %8.4f || relCOV: %8.4f\n",
+            //        N, i, index, posUs.x, posThem.x, relCOM.x,sep.x,relCOV.x);
             relCOM = relCOM + posThem;  
             relCOV = relCOV + velThem;
             if (distLT(posUs,posThem,boidParams.CollisionRadius))
             {
                 sep = sep - (posThem - posUs);
             }
+            numCloseBy++;
         }
-        numCloseBy++;
+        // else printf("%d Us: %d || Them: %d\n",N, index, i);
+        // else printf("Us: %d || Them: %d || GT?: %d\n",index,i,(int)(distGT(posUs,posThem,boidParams.NeighbourhoodRadius)));//printf("posUS: (%f,%f) || posThem: (%f,%f)\n", posUs.x,posUs.y, posThem.x,posUs.y);
     }
 
     if (numCloseBy > 0)
     {
+        // printf("relCOM: %f || sep: %f || relCOV: %f\n", relCOM.x,sep.x,relCOV.x);
         a1 = ((relCOM / numCloseBy) - posUs) * (boidParams.Cohesion);
+        // printf("%f\n", (((relCOM / numCloseBy) - posUs)* (boidParams.Cohesion)).x);
         a2 = sep * (boidParams.Separation); // dosent depent on NumCloseby but makes sense
         a3 = ((relCOV / numCloseBy) - velUs) * (boidParams.Alignment);
     }
+    
+    // printf("Vel ptr: %p\n Acc val : ",((float*)cuConstBoidData.velocity));
+    // // printf("Vel val: %f\n",*((float*)cuConstBoidData.velocity));
+    // printf("Acc ptr: %p\n Acc val : ",((float*)cuConstBoidData.acceleration));
+    // printf("Acc val: %f\n",((float*)acceleration)[0]);
+    // update the acceleration of the boid
+    // float ab4 = acceleration[index].x;
+    // printf("a1: %f || a2: %f || a3: %f\n", a1.x,a2.x,a3.x);
+    acceleration[index] = a1 + a2 + a3;
+    // printf("Before: %f ||| After: %f\n",ab4, ((float*)acceleration)[0]);
 }
 
-__device__ void 
-actKernel(float2 a1, float2 a2, float2 a3, double deltaTime, int i)
+__global__ void 
+actKernel(double deltaTime)
 {
-
+    const int index = blockIdx.x + threadIdx.x;
     /// NOTE: This function is meant to be independent from all other boids
     /// and thus can be run asynchronously, however it needs a barrier between itself
     /// and the senseAndPlan() device function
-    float2* posPtr = &(((float2*)(cuConstBoidData.position))[i]);
-    float2* velPtr = &(((float2*)(cuConstBoidData.velocity))[i]);
+    float2* position = (float2*)cuConstBoidData.position;
+    float2* velocity = (float2*)cuConstBoidData.velocity;
+    float2* acceleration = (float2*)cuConstBoidData.acceleration;
+
     BoidParamsStruct params = cuConstGlobalParams.BoidParams;
 
-    float2 acceleration = a1 + a2 + a3; // + a4
-    *velPtr = limitMagnitudeKernel((*velPtr + acceleration), params.MaxVel);
-    *posPtr = (*posPtr) + ((*velPtr) * deltaTime);
+    velocity[index] = limitMagnitudeKernel((velocity[index] + acceleration[index]), params.MaxVel);
+    // float2 before = position[index];
+    position[index] = position[index] + (velocity[index] * deltaTime);
+    // printf("Before: (%.4f,%.4f) || After: (%.4f,%.4f)\n", before.x,before.y,position[index].x,position[index].y);
 }
-
-__global__ void sensePlanActKernel()
-{
-    const int index = blockIdx.x + threadIdx.x;
-    float2 a1,a2,a3;
-    senseAndPlanKernel(a1,a2,a3,index);
-    __syncthreads();
-    actKernel(a1,a2,a3,cuConstGlobalParams.SimulatorParams.DeltaTime,index);
-}
-
 
 class Simulator
 {
   public:
+    GlobalBoidData cuDevicePtrs;
     float* cudaDevicePosition;
     float* cudaDeviceVelocity;
+    float* cudaDeviceAcceleration;
     int* cudaDeviceFlockID;
     int* cudaDeviceFlockSize;
 
     int numBoids;
     float* position;
     float* velocity;
+    float* acceleration;
     int* flockID;
     int* flockSize;
     Simulator()
@@ -217,32 +235,29 @@ class Simulator
         arr[2*i+1] = v[1];
     }
 
-    /** @return a list of all the boids in the simulation */
-    std::vector<Boid> GetAllBoids ()
-    {
-        return *(AllFlocks.begin()->Neighbourhood.GetAllBoidsPtr());
-    }
-
     void InitBoidDataArrays() {
-        std::vector<Boid> AllBoids = GetAllBoids();
+        std::vector<Boid> &AllBoids = *(AllFlocks.begin()->Neighbourhood.GetAllBoidsPtr());
         size_t vecSize = sizeof(float) * 2 * numBoids;
         size_t intSize = sizeof(int) * numBoids;
 
         position = (float*)malloc(vecSize);
         velocity = (float*)malloc(vecSize);
+        acceleration = (float*)malloc(vecSize);
         flockID = (int*)malloc(intSize);
         flockSize = (int*)malloc(intSize);
 
         for (size_t i=0; i < AllBoids.size(); i++)
         {
-            Boid boid = AllBoids[i];
+            Boid &boid = AllBoids[i];
             Vec2D pos = boid.Position;
             Vec2D vel = boid.Velocity;
+            Vec2D acc = boid.Acceleration;
             int fID = boid.FlockID;
             int fSize = 1;
 
             insertFloat2(position, pos, i);
             insertFloat2(velocity, vel, i);
+            insertFloat2(acceleration, acc,i);
             flockID[i] = fID;
             flockSize[i] = fSize;
         }
@@ -252,12 +267,12 @@ class Simulator
      * @pre All Boid arrays have been initialized and are up to date.
      */
     void UpdateBoidPosAndVel() {
-        std::vector<Boid> AllBoids = GetAllBoids();
+        std::vector<Boid> &AllBoids = *(AllFlocks.begin()->Neighbourhood.GetAllBoidsPtr());
         for (size_t i = 0; i < AllBoids.size(); i++)
         {
-            Boid B = AllBoids[i];
-            B.Position = position[i];
-            B.Velocity = velocity[i];
+            Boid &B = AllBoids[i];
+            B.Position = Vec2D(position[2*i],position[2*i+1]);
+            B.Velocity = Vec2D(velocity[2*i],velocity[2*i+1]);
         }
     }
 
@@ -270,12 +285,13 @@ class Simulator
         auto StartTime = std::chrono::system_clock::now();
 
         // allocate boid and flock memory
-        std::vector<Boid> AllBoids = GetAllBoids();
+        std::vector<Boid> &AllBoids = *(AllFlocks.begin()->Neighbourhood.GetAllBoidsPtr());
         numBoids = AllBoids.size();
         size_t vecSize = sizeof(float) * 2 * numBoids;
         size_t intSize = sizeof(int) * numBoids;
         cudaMalloc(&cudaDevicePosition, vecSize);
         cudaMalloc(&cudaDeviceVelocity, vecSize);
+        cudaMalloc(&cudaDeviceAcceleration, vecSize);
         cudaMalloc(&cudaDeviceFlockID, intSize);
         cudaMalloc(&flockSize, intSize);
 
@@ -283,19 +299,20 @@ class Simulator
         
         cudaMemcpy(cudaDevicePosition,position,vecSize,cudaMemcpyHostToDevice);
         cudaMemcpy(cudaDeviceVelocity,velocity,vecSize,cudaMemcpyHostToDevice);
+        cudaMemcpy(cudaDeviceAcceleration,acceleration,vecSize,cudaMemcpyHostToDevice);
         cudaMemcpy(cudaDeviceFlockID,flockID,intSize,cudaMemcpyHostToDevice);
         cudaMemcpy(cudaDeviceFlockSize,flockSize,intSize,cudaMemcpyHostToDevice);
 
         // set up constants struct for copying into device memory struct
-        GlobalConstants constParams;
-        constParams.numBoids = numBoids;
-        constParams.position = cudaDevicePosition; 
-        constParams.velocity = cudaDeviceVelocity;
-        constParams.flockID = cudaDeviceFlockID;
-        constParams.flockSize = flockSize;
+        cuDevicePtrs.numBoids = numBoids;
+        cuDevicePtrs.position = cudaDevicePosition; 
+        cuDevicePtrs.velocity = cudaDeviceVelocity;
+        cuDevicePtrs.acceleration = cudaDeviceAcceleration;
+        cuDevicePtrs.flockID = cudaDeviceFlockID;
+        cuDevicePtrs.flockSize = flockSize;
 
-        cudaMemcpyToSymbol(cuConstBoidData, &constParams, sizeof(GlobalConstants));
-        cudaMemcpyToSymbol(cuConstGlobalParams, &Params, sizeof(GlobalParams));
+        cudaMemcpyToSymbol(cuConstBoidData, &cuDevicePtrs, sizeof(GlobalBoidData));
+        cudaMemcpyToSymbol(cuConstGlobalParams, &GlobalParams, sizeof(ParamsStruct));
 
         auto EndTime = std::chrono::system_clock::now();
         std::chrono::duration<double> ElapsedTime = EndTime - StartTime;
@@ -311,30 +328,42 @@ class Simulator
         const int threadsPerBlock = 512;
         const int numBlocks = (numBoids + threadsPerBlock - 1) / threadsPerBlock;
 
-        sensePlanActKernel<<<numBlocks,threadsPerBlock>>>();
+        senseAndPlanKernel<<<numBlocks,threadsPerBlock>>>();
+        // cudaDeviceSynchronize();
+        actKernel<<<numBlocks,threadsPerBlock>>>(Params.DeltaTime);
         cudaDeviceSynchronize();
 
+        // GlobalBoidData Results;
+        // cudaMemcpyFromSymbol(&Results.position, 
+        //            "cuConstBoidData.position",
+        //            sizeof(float*),
+        //            0, cudaMemcpyDeviceToHost);
+        // printf("%p", Results.position);
         cudaMemcpy(position, 
-                   cuConstBoidData.position,
+                   cuDevicePtrs.position,
                    numBoids * sizeof(float) * 2,
                    cudaMemcpyDeviceToHost);
         cudaMemcpy(velocity, 
-                   cuConstBoidData.velocity,
+                   cuDevicePtrs.velocity,
                    numBoids * sizeof(float) * 2,
                    cudaMemcpyDeviceToHost);
 
-        UpdateBoidPosAndVel();          
-
-        for (size_t i = 0; i < AllFlocks.size(); i++)
-        {
-            AllFlocks[i].Delegate(omp_get_thread_num(), AllFlocks);
-        }
-
-        for (size_t i = 0; i < AllFlocks.size(); i++)
-        {
-            AllFlocks[i].AssignToFlock(omp_get_thread_num(), AllFlocks);
-        }
-
+        //printf("%f\n",position[0]);
+        UpdateBoidPosAndVel();     
+// #pragma omp parallel num_threads(Params.NumThreads)
+//     {
+// #pragma for schedule(static)
+//         for (size_t i = 0; i < AllFlocks.size(); i++)
+//         {
+//             AllFlocks[i].Delegate(omp_get_thread_num(), AllFlocks);
+//         }
+// #pragma omp barrier
+// #pragma for schedule(static)
+//         for (size_t i = 0; i < AllFlocks.size(); i++)
+//         {
+//             AllFlocks[i].AssignToFlock(omp_get_thread_num(), AllFlocks);
+//         }
+//     }
         auto EndTime = std::chrono::system_clock::now();
         std::chrono::duration<double> ElapsedTime = EndTime - StartTime;
         // save tracer data
