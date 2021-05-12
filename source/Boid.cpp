@@ -1,35 +1,47 @@
 #include "Boid.hpp"
 #include "Flock.hpp"  // To see all other neighbourhoods
 #include "Tracer.hpp" // to keep track of memory traces
-#include <omp.h>
+#include <unordered_set>
 
 // declaring static variables
 size_t Boid::NumBoids;
 BoidParamsStruct Boid::Params;
+
+bool Boid::IsValid() const
+{
+    if (FlockPtr == nullptr)
+        return false;
+    assert(FlockPtr->FlockID != FlockID);
+    return true;
+}
 
 size_t Boid::GetFlockID() const
 {
     return FlockID;
 }
 
-void Boid::SenseAndPlan(const Flock *FlockPtr, const std::vector<Flock> &AllFlocks)
+void Boid::SenseAndPlan(const int TID, const std::vector<Flock> &AllFlocks)
 {
     // reset current force factors
+    assert(IsValid());
     a1 = Vec2D(0, 0);
     a2 = Vec2D(0, 0);
     a3 = Vec2D(0, 0);
     Vec2D RelCOM, RelCOV, Sep; // relative center-of-mass/velocity, & separation
     size_t NumCloseby = 0;
     // begin sensing all other boids in all other flocks
-    ThreadID = FlockPtr->TIDs.SenseAndPlan;
+    ThreadID = TID;
+    assert(FlockPtr->IsValidFlock());
     for (const Flock &F : AllFlocks)
     {
+        assert(F.IsValidFlock());
         // if flock is close enough (correct bc bounding boxes)
         if (F.BB.IntersectsBB(FlockPtr->BB)) // if flock is close enough
         {
             std::vector<Boid *> Boids = F.Neighbourhood.GetBoids();
-            for (Boid *B : Boids)
+            for (const Boid *B : Boids)
             {
+                std::cout << "planning" << std::endl;
                 // begin planning for this boid for each boid that is sensed
                 Plan((*B), RelCOM, RelCOV, Sep, NumCloseby);
             }
@@ -46,6 +58,7 @@ void Boid::SenseAndPlan(const Flock *FlockPtr, const std::vector<Flock> &AllFloc
 
 void Boid::SenseAndPlan(const int TID, const std::vector<Boid> &AllBoids)
 {
+    assert(IsValid());
     // reset current force factors
     a1 = Vec2D(0, 0);
     a2 = Vec2D(0, 0);
@@ -57,36 +70,37 @@ void Boid::SenseAndPlan(const int TID, const std::vector<Boid> &AllBoids)
     // begin sensing all other boids in all other flocks
 
     // use associative containers to do fast checks for boids
-    // std::unordered_set<size_t> FarAwayFlocks;
-    // std::unordered_set<size_t> NearbyFlocks;
+    std::unordered_set<size_t> FarAwayFlocks;
+    std::unordered_set<size_t> NearbyFlocks;
     for (const Boid &B : AllBoids)
     {
+        assert(B.IsValid());
         // we know this boid is close enough, so plan with it
-        Plan(B, RelCOM, RelCOV, Sep, NumCloseby);
-        // if (NearbyFlocks.find(B.FlockID) != NearbyFlocks.end())
-        // {
-        //     // we know this boid is close enough, so plan with it
-        //     Plan(B, RelCOM, RelCOV, Sep, NumCloseby);
-        // }
-        // else
-        // {
-        //     // first check if the boid is in a far away flock
-        //     if (FarAwayFlocks.find(B.FlockID) == FarAwayFlocks.end())
-        //     {
-        //         // if flock is too far away, add it to the "ignore" set
-        //         if ((B.FlockPtr.COM - FlockPtr->COM).Size() < 2 * Params.NeighbourhoodRadius)
-        //         {
-        //             // now we know this boid is in a "close enough" flock
-        //             NearbyFlocks.insert(B.FlockID);
-        //             Plan(B, RelCOM, RelCOV, Sep, NumCloseby);
-        //         }
-        //         else
-        //         {
-        //             FarAwayFlocks.insert(B.FlockID);
-        //         }
-        //     }
-        //     // else ignore, this case occurs if the boid is in a FarAwayFlock
-        // }
+        if (NearbyFlocks.find(B.FlockID) != NearbyFlocks.end())
+        {
+            // we know this boid is close enough, so plan with it
+            Plan(B, RelCOM, RelCOV, Sep, NumCloseby);
+        }
+        else
+        {
+            // first check if the boid is in a far away flock
+            if (FarAwayFlocks.find(B.FlockID) == FarAwayFlocks.end())
+            {
+                // if flock is too far away, add it to the "ignore" set
+                if (B.FlockPtr->BB.IntersectsBB(FlockPtr->BB))
+                {
+                    // now we know this boid is in a "close enough" flock
+                    // so we don't need to compute intersections anymore
+                    NearbyFlocks.insert(B.FlockID);
+                    Plan(B, RelCOM, RelCOV, Sep, NumCloseby);
+                }
+                else
+                {
+                    FarAwayFlocks.insert(B.FlockID);
+                }
+            }
+            // else ignore, this case occurs if the boid is in a FarAwayFlock
+        }
     }
 
     if (NumCloseby > 0)
@@ -99,6 +113,7 @@ void Boid::SenseAndPlan(const int TID, const std::vector<Boid> &AllBoids)
 
 void Boid::Plan(const Boid &B, Vec2D &RelativeCOM, Vec2D &AvgVel, Vec2D &SeparationDisp, size_t &NumCloseby) const
 {
+    assert(IsValid());
     // add to the tracer
     Tracer::AddRead(GetFlockID(), B.GetFlockID(), Flock::SenseAndPlanOp);
 
@@ -120,6 +135,7 @@ void Boid::Plan(const Boid &B, Vec2D &RelativeCOM, Vec2D &AvgVel, Vec2D &Separat
 
 void Boid::Act(const double DeltaTime)
 {
+    assert(IsValid());
     /// NOTE: This function is meant to be independent from all other boids
     /// and thus can be run asynchronously, however it needs a barrier between itself
     /// and the Boid::Plan() function
@@ -131,6 +147,7 @@ void Boid::Act(const double DeltaTime)
 
 void Boid::CollisionCheck(Boid &Neighbour)
 {
+    assert(IsValid());
     /// TODO: fix the tracking for high-tick timings
     if (Neighbour.BoidID != BoidID &&                                       // not self
         (Neighbour.Position - Position).SizeSqr() < sqr(2 * Params.Radius)) // only physical collision
@@ -142,6 +159,7 @@ void Boid::CollisionCheck(Boid &Neighbour)
 
 void Boid::Draw(Image &I) const
 {
+    assert(IsValid());
     Colour C(255, 255, 255);
     if (Params.ColourByThread)
     {

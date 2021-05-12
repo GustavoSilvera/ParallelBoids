@@ -20,7 +20,7 @@ class Flock
         FlockID = FiD;
         for (size_t i = 0; i < Size; i++)
         {
-            Neighbourhood.NewBoid(FlockID);
+            Neighbourhood.NewBoid(this, FlockID);
         }
         BB = BoundingBox(Neighbourhood.GetBoidF(0)->Position); // always has 1 boid
         Valid = (Size > 0);
@@ -70,12 +70,21 @@ class Flock
         BoundingBox(const Vec2D &V0)
         {
             // initialize BB to a single point
-            TopLeftX = V0[0] - 2;
-            TopLeftY = V0[1] - 2;
-            BottomRightX = V0[0] + 2; // single point
-            BottomRightY = V0[1] + 2;
+            const double MinSize = GlobalParams.BoidParams.Radius;
+            TopLeftX = V0[0] - MinSize;
+            TopLeftY = V0[1] - MinSize;
+            BottomRightX = V0[0] + MinSize;
+            BottomRightY = V0[1] + MinSize;
             assert(IsValidBB());
         }
+        Vec2D Centroid() const
+        {
+            const double W = BottomRightX - TopLeftX;
+            const double H = BottomRightY - TopLeftY;
+            assert(W > 0 && H > 0);
+            return Vec2D(TopLeftX + 0.5 * W, TopLeftY + 0.5 * H);
+        }
+
         bool IntersectsBB(const BoundingBox &B) const
         {
             assert(IsValidBB());
@@ -95,7 +104,6 @@ class Flock
     BoundingBox BB;
 
     bool Valid;
-    Vec2D COM; // center of mass of this flock
     static FlockParamsStruct Params;
     NLayout Neighbourhood;
     std::unordered_map<size_t, std::vector<Boid>> Emigrants; // buckets where the delegates go
@@ -107,8 +115,6 @@ class Flock
     void SenseAndPlan(const int TID, const std::vector<Flock> &AllFlocks);
 
     void Act(const double DeltaTime);
-
-    void UpdateCOM();
 
     void Delegate(const int TID, const std::vector<Flock> &Flocks);
 

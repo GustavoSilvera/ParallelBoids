@@ -41,6 +41,12 @@ bool NLayout::IsValid() const
         if (BoidsGlobal[bID].FlockID != FlockID)
             return false;
     }
+    // auto Boids = GetBoids();
+    // for (const Boid *B : Boids)
+    // {
+    //     if (!B->IsValid())
+    //         return false;
+    // }
     // no boid left behind (VERY EXPENSIVE, only need to be done once)
     if (FlockID == 0) // arbitrary random FlockID
     {
@@ -57,16 +63,19 @@ bool NLayout::IsValid() const
     for (const Boid &B : BoidsLocal)
     {
         if (B.FlockID != FlockID)
-        {
             return false;
-        }
+        assert(B.IsValid());
+        // return false;
     }
     return true;
 }
 
-void NLayout::NewBoid(const size_t FID)
+void NLayout::NewBoid(Flock *FP, const size_t FID)
 {
     Boid NewBoidStruct(FID);
+    /// TODO: move to constructor
+    NewBoidStruct.FlockPtr = FP;
+    assert(NewBoidStruct.IsValid());
     FlockID = FID;
     if (UsingLayout == Local)
     {
@@ -191,6 +200,7 @@ void NLayout::Append(const std::vector<Boid> &Immigrants)
                 // should be O(1) complexity
                 BoidsGlobalData.at(BoidsGlobal[Idx].FlockID).Remove(B); // remove old
                 BoidsGlobal[Idx].FlockID = FlockID;                     // assign new FlockID to Boid
+                BoidsGlobal[Idx].FlockPtr = B.FlockPtr;                 // assign new flock ptr
                 BoidsGlobalData.at(FlockID).Add(B);                     // add new to my flock
                 assert(IsValid());
             }

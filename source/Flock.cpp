@@ -28,7 +28,7 @@ void Flock::SenseAndPlan(const int TID, const std::vector<Flock> &AllFlocks)
     std::vector<Boid *> Boids = Neighbourhood.GetBoids();
     for (Boid *B : Boids)
     {
-        B->SenseAndPlan(this, AllFlocks);
+        B->SenseAndPlan(TID, AllFlocks);
     }
 }
 
@@ -36,29 +36,11 @@ void Flock::Act(const double DeltaTime)
 {
     // all boids advance one timestep, can be done asynrhconously bc indep
     assert(IsValidFlock()); // make sure this flock is valid
-    // assert(NLayout::GetType() == NLayout::Local); // only on Local type
-    COM = Vec2D(0, 0);
     std::vector<Boid *> Boids = Neighbourhood.GetBoids();
     for (Boid *B : Boids)
     {
         B->Act(DeltaTime);
-        COM += B->Position; // updates COM based off the most up-to-date boid positions
     }
-    COM /= Size(); // we know Neighbourhood.size() > 0 bc Valid
-}
-
-void Flock::UpdateCOM()
-{
-    /// NOTE: this is needed because when parallelizing across Boids, all the boids
-    // act simultaneously and without a concept of a "Flock", so this is done after the
-    // fact
-    COM = Vec2D(0, 0);
-    std::vector<Boid *> Boids = Neighbourhood.GetBoids();
-    for (const Boid *B : Boids)
-    {
-        COM += B->Position; // updates COM based off the most up-to-date boid positions
-    }
-    COM /= Size();
 }
 
 void Flock::Delegate(const int TID, const std::vector<Flock> &AllFlocks)
@@ -100,8 +82,9 @@ void Flock::Delegate(const int TID, const std::vector<Flock> &AllFlocks)
                     bool FlockRule = (Size() <= F->Size());
                     if (FlockRule)
                     {
-                        Emigrants[F->FlockID].push_back((*B));             // dereference from Boid*
-                        Emigrants[F->FlockID].back().FlockID = F->FlockID; // update latest bucket's FiD
+                        Emigrants[F->FlockID].push_back((*B));                          // dereference from Boid*
+                        Emigrants[F->FlockID].back().FlockID = F->FlockID;              // update latest bucket's FiD
+                        Emigrants[F->FlockID].back().FlockPtr = const_cast<Flock *>(F); // new FlockPtr
                         Emigrated = true; // indicate that this boid is part of the emigration bucket
                     }
                     break; // don't need to check the rest bc they are all in the same flock
@@ -122,6 +105,7 @@ void Flock::Delegate(const int TID, const std::vector<Flock> &AllFlocks)
         {
             // stores all the boids (unchanged) into what will be this flock's new neighbourhood
             Emigrants[FlockID].push_back((*B));
+            Emigrants[FlockID].back().FlockPtr = const_cast<Flock *>(this); // new FlockPtr
         }
     }
 #ifndef NDEBUG
@@ -208,6 +192,7 @@ std::vector<const Flock *> Flock::NearestFlocks(const std::vector<Flock> &AllFlo
     std::vector<const Flock *> NearbyFlocks;
     /// TODO: figure out a better approach than this naive way
     std::vector<size_t> NearbyIdxs;
+    const Vec2D Centroid = BB.Centroid();
     for (size_t i = 0; i < Params.MaxNumComm; i++)
     {
         double NearestDist = 1e300; // big num
@@ -217,7 +202,8 @@ std::vector<const Flock *> Flock::NearestFlocks(const std::vector<Flock> &AllFlo
             const Flock &F = AllFlocks[j];
             if (!F.IsValidFlock())
                 continue; // ignore invalid flocks
-            double FDist = (COM - F.COM).Size();
+            // distance to center of bounding boxes (centroids)
+            double FDist = (Centroid - F.BB.Centroid()).Size();
             if (FDist < NearestDist && F.FlockID != FlockID)
             {
                 // make sure this boid hasn't been selected before
@@ -261,8 +247,8 @@ void Flock::CleanUp(std::vector<Flock> &AllFlocks)
     /// NOTE: this can probably be parallelized as well...
     // remove all empty (invalid) flocks
     /// TODO: Implement this with 210-style filter for O(logn) span
-    auto IsInvalid = [](const Flock &F) { return !F.Valid; };
-    AllFlocks.erase(std::remove_if(AllFlocks.begin(), AllFlocks.end(), IsInvalid), AllFlocks.end());
+    // auto IsInvalid = [](const Flock &F) { return !F.Valid; };
+    // AllFlocks.erase(std::remove_if(AllFlocks.begin(), AllFlocks.end(), IsInvalid), AllFlocks.end());
 #ifndef NDEBUG
     for (const Flock &A : AllFlocks)
     {

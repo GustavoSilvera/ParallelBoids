@@ -64,6 +64,10 @@ class Simulator
         for (auto A : AllFlocks)
         {
             BoidCount += A.Size();
+            for (const Boid *B : A.Neighbourhood.GetBoids())
+            {
+                assert(B->IsValid());
+            }
         }
         assert(Params.NumBoids == BoidCount);
 #endif
@@ -85,13 +89,6 @@ class Simulator
                 for (size_t i = 0; i < AllBoids.size(); i++)
                 {
                     AllBoids[i].Act(Params.DeltaTime);
-                }
-                // need to update the COM's for all the flocks AFTER all the boids have updated
-#pragma omp barrier
-#pragma omp for schedule(static)
-                for (size_t i = 0; i < AllFlocks.size(); i++)
-                {
-                    AllFlocks[i].UpdateCOM();
                 }
             }
             else
