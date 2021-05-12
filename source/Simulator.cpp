@@ -83,71 +83,115 @@ class Simulator
         }
         assert(Params.NumBoids == BoidCount);
 #endif
+        std::vector<Flock *> AllFlocksVec = GetAllFlocksVector();
+
+        if (!Params.ParallelizeAcrossFlocks)
+            ParallelBoids(AllFlocksVec);
+        else
+            ParallelFlocks(AllFlocksVec);
+        UpdateFlocks(AllFlocksVec);
+
+        // convert flock data to processor communications
+        Tracer::SaveFlockMatrix(AllFlocks);
+        // remove empty (invalid) flocks
+        Flock::CleanUp(AllFlocks);
+        auto EndTime = std::chrono::system_clock::now();
+        std::chrono::duration<double> ElapsedTime = EndTime - StartTime;
+        // save tracer data
+        Tracer::AddTickT(ElapsedTime.count());
+
+        if (Params.RenderingMovie)
+        {
+            // Rendering is not part of our problem
+            Render();
+        }
+
+        return ElapsedTime.count(); // return wall clock time diff
+    }
+
+    std::vector<Flock *> GetAllFlocksVector() const
+    {
         std::vector<Flock *> AllFlocksVec;
         for (auto It = AllFlocks.begin(); It != AllFlocks.end(); It++)
         {
             assert(It != AllFlocks.end());
-            Flock &F = It->second;
-            AllFlocksVec.push_back(&F);
+            const Flock &F = It->second;
+            AllFlocksVec.push_back(const_cast<Flock *>(&F));
         }
         assert(AllFlocksVec.size() == AllFlocks.size());
+        return AllFlocksVec;
+    }
 
+    void ParallelBoids(std::vector<Flock *> AllFlocksVec)
+    {
+        /// NOTE: the following parallel operations are per-boids
 #pragma omp parallel num_threads(Params.NumThreads) // spawns threads
         {
-            /// NOTE: the following parallel operations are per-boids
-            if (!Params.ParallelizeAcrossFlocks)
+            if (!GlobalParams.FlockParams.UseLocalNeighbourhoods)
             {
-                if (!GlobalParams.FlockParams.UseLocalNeighbourhoods)
+                std::vector<Boid> &AllBoids = *(AllFlocks.begin()->second.Neighbourhood.GetAllBoidsPtr());
+#pragma omp for schedule(static)
+                for (size_t i = 0; i < AllBoids.size(); i++)
                 {
-                    std::vector<Boid> &AllBoids = *(AllFlocks.begin()->second.Neighbourhood.GetAllBoidsPtr());
-#pragma omp for schedule(static)
-                    for (size_t i = 0; i < AllBoids.size(); i++)
-                    {
-                        AllBoids[i].SenseAndPlan(omp_get_thread_num(), AllFlocks);
-                    }
-#pragma omp barrier
-#pragma omp for schedule(static)
-                    for (size_t i = 0; i < AllBoids.size(); i++)
-                    {
-                        AllBoids[i].Act(Params.DeltaTime);
-                    }
+                    AllBoids[i].SenseAndPlan(omp_get_thread_num(), AllFlocks);
                 }
-                else
-                {
-                    for (size_t i = 0; i < AllFlocks.size(); i++)
-                    {
-#pragma omp for schedule(static)
-                        for (Boid *B : AllFlocks[i].Neighbourhood.GetBoids())
-                        {
-                            B->SenseAndPlan(omp_get_thread_num(), AllFlocks);
-                        }
-                    }
 #pragma omp barrier
-                    for (size_t i = 0; i < AllFlocks.size(); i++)
-                    {
 #pragma omp for schedule(static)
-                        for (Boid *B : AllFlocks[i].Neighbourhood.GetBoids())
-                        {
-                            B->Act(Params.DeltaTime);
-                        }
-                    }
+                for (size_t i = 0; i < AllBoids.size(); i++)
+                {
+                    AllBoids[i].Act(Params.DeltaTime);
                 }
             }
             else
             {
-                // parallelizing across flocks
-#pragma omp for schedule(static)
-                for (size_t i = 0; i < AllFlocksVec.size(); i++)
+                std::vector<Boid *> AllBoids;
+                for (const Flock *F : AllFlocksVec)
                 {
-                    AllFlocksVec[i]->SenseAndPlan(omp_get_thread_num(), AllFlocks);
+#pragma omp critical
+                    {
+                        std::vector<Boid *> LocalBoids = F->Neighbourhood.GetBoids();
+                        AllBoids.insert(AllBoids.end(), LocalBoids.begin(), LocalBoids.end());
+                    }
                 }
 #pragma omp barrier
 #pragma omp for schedule(static)
-                for (size_t i = 0; i < AllFlocksVec.size(); i++)
+                for (size_t i = 0; i < AllBoids.size(); i++)
                 {
-                    AllFlocksVec[i]->Act(Params.DeltaTime);
+                    AllBoids[i]->SenseAndPlan(omp_get_thread_num(), AllFlocks);
+                }
+#pragma omp barrier
+#pragma omp for schedule(static)
+                for (size_t i = 0; i < AllBoids.size(); i++)
+                {
+                    AllBoids[i]->Act(Params.DeltaTime);
                 }
             }
+        }
+    }
+
+    void ParallelFlocks(std::vector<Flock *> AllFlocksVec)
+    {
+#pragma omp parallel num_threads(Params.NumThreads) // spawns threads
+        {
+            // parallelizing across flocks
+#pragma omp for schedule(static)
+            for (size_t i = 0; i < AllFlocksVec.size(); i++)
+            {
+                AllFlocksVec[i]->SenseAndPlan(omp_get_thread_num(), AllFlocks);
+            }
+#pragma omp barrier
+#pragma omp for schedule(static)
+            for (size_t i = 0; i < AllFlocksVec.size(); i++)
+            {
+                AllFlocksVec[i]->Act(Params.DeltaTime);
+            }
+        }
+    }
+
+    void UpdateFlocks(std::vector<Flock *> AllFlocksVec)
+    {
+#pragma omp parallel num_threads(Params.NumThreads) // spawns threads
+        {
             /// NOTE: the following parallel operations are per-flocks, not per-boids
 #pragma omp barrier
 #pragma omp for schedule(static)
@@ -168,22 +212,6 @@ class Simulator
                 AllFlocksVec[i]->ComputeBB();
             }
         }
-        // convert flock data to processor communications
-        Tracer::SaveFlockMatrix(AllFlocks);
-        // remove empty (invalid) flocks
-        Flock::CleanUp(AllFlocks);
-        auto EndTime = std::chrono::system_clock::now();
-        std::chrono::duration<double> ElapsedTime = EndTime - StartTime;
-        // save tracer data
-        Tracer::AddTickT(ElapsedTime.count());
-
-        if (Params.RenderingMovie)
-        {
-            // Rendering is not part of our problem
-            Render();
-        }
-
-        return ElapsedTime.count(); // return wall clock time diff
     }
 
     void Render()
