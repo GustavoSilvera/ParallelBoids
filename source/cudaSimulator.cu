@@ -106,7 +106,7 @@ senseAndPlanKernel()
 
     // printf("nborradius: %f\n", boidParams.NeighbourhoodRadius);
     int numCloseBy = 0;
-    for(size_t i = 0; i < N; i++) {
+    for(int i = 0; i < N; i++) {
         float2 posThem = position[i];
         float2 velThem = velocity[i];
         if (i != index 
@@ -329,7 +329,7 @@ class Simulator
         const int numBlocks = (numBoids + threadsPerBlock - 1) / threadsPerBlock;
 
         senseAndPlanKernel<<<numBlocks,threadsPerBlock>>>();
-        // cudaDeviceSynchronize();
+        cudaDeviceSynchronize();
         actKernel<<<numBlocks,threadsPerBlock>>>(Params.DeltaTime);
         cudaDeviceSynchronize();
 
@@ -350,20 +350,20 @@ class Simulator
 
         //printf("%f\n",position[0]);
         UpdateBoidPosAndVel();     
-// #pragma omp parallel num_threads(Params.NumThreads)
-//     {
-// #pragma for schedule(static)
-//         for (size_t i = 0; i < AllFlocks.size(); i++)
-//         {
-//             AllFlocks[i].Delegate(omp_get_thread_num(), AllFlocks);
-//         }
-// #pragma omp barrier
-// #pragma for schedule(static)
-//         for (size_t i = 0; i < AllFlocks.size(); i++)
-//         {
-//             AllFlocks[i].AssignToFlock(omp_get_thread_num(), AllFlocks);
-//         }
-//     }
+#pragma omp parallel num_threads(Params.NumThreads)
+    {
+#pragma for schedule(static)
+        for (size_t i = 0; i < AllFlocks.size(); i++)
+        {
+            AllFlocks[i].Delegate(omp_get_thread_num(), AllFlocks);
+        }
+#pragma omp barrier
+#pragma for schedule(static)
+        for (size_t i = 0; i < AllFlocks.size(); i++)
+        {
+            AllFlocks[i].AssignToFlock(omp_get_thread_num(), AllFlocks);
+        }
+    }
         auto EndTime = std::chrono::system_clock::now();
         std::chrono::duration<double> ElapsedTime = EndTime - StartTime;
         // save tracer data
