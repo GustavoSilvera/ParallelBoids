@@ -1,5 +1,10 @@
 TARGET = Simulator # name of binary
-OBJS += Simulator.o Flock.o Boid.o Neighbourhood.o Tracer.o # all the cpp obj files
+
+OBJ_DIR = objs
+OUT_DIR = out
+OBJS += $(OBJ_DIR)/Simulator.o $(OBJ_DIR)/Flock.o 
+OBJS += $(OBJ_DIR)/Boid.o $(OBJ_DIR)/Neighbourhood.o 
+OBJS += $(OBJ_DIR)/Tracer.o # all the cpp obj files
 OBJS += cudaSimulator.o # cuda files
 
 CXX = g++
@@ -19,12 +24,17 @@ SRC_DIR = source
 LDFLAGS += $(LIBS)
 
 default: $(TARGET)
+
+dirs:
+	mkdir -p $(OUT_DIR)
+	mkdir -p $(OBJ_DIR)
+
 all: $(TARGET)
 
-$(TARGET): $(OBJS)
-	$(CXX) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+$(TARGET): dirs $(OBJS)
+	$(CXX) $(CFLAGS) -o $@ $(OBJS) $(LDFLAGS)
 
-%.o: $(SRC_DIR)/%.cpp
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 	$(CXX) $(CFLAGS) -c -o $@ $<
 %.o: $(SRC_DIR)/%.cu
 	$(NVCC) $< $(NVCCFLAGS) -c -o $@ 
@@ -33,5 +43,6 @@ DEPS = $(OBJS:%.o=%.d)
 -include $(DEPS)
 
 clean: 
-	rm $(TARGET) $(OBJS) || true
-	rm -rf Out/*.ppm || true
+	rm $(TARGET) || true
+	rm -rf $(OBJ_DIR) || true
+	rm -rf $(OUT_DIR) || true

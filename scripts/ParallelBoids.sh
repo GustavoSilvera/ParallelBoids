@@ -12,7 +12,7 @@ cd ..
 make -j4 -B --silent
 
 # ensure an Out directory is made before writing to it
-mkdir -p Out
+mkdir -p out
 
 # main executable is in ParallelBoids/ directory
 ./Simulator

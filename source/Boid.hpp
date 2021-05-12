@@ -4,6 +4,7 @@
 #include "Image.hpp"
 #include "Utils.hpp"
 #include "Vec.hpp"
+#include <unordered_map>
 #include <vector>
 
 // fwd declaration of flocks
@@ -43,11 +44,15 @@ class Boid
     Vec2D Position, Velocity, Acceleration;
     Vec2D a1, a2, a3;
     static BoidParamsStruct Params;
-    size_t FlockID, BoidID;
+    size_t FlockID, BoidID, ThreadID;
+    Flock *FlockPtr;
 
     size_t GetFlockID() const;
 
+    // for parallelizing across flocks
     void SenseAndPlan(const Flock *F, const std::vector<Flock> &AllFlocks);
+    // for parallelizing across boids
+    void SenseAndPlan(const int TID, const std::vector<Boid> &AllBoids);
 
     void Plan(const Boid &B, Vec2D &RCOM, Vec2D &RCOV, Vec2D &Sep, size_t &NC) const;
 

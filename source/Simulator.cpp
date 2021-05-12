@@ -37,8 +37,10 @@ class Simulator
         }
     }
     static SimulatorParamsStruct Params;
+    /// TODO: we can use the SenseAndPlan flock optimization if we change this vector
+    // to an associative container (unordered_map) so we can get O(1) access regardless
+    // of the resizing
     std::vector<Flock> AllFlocks;
-    std::vector<int> FlockSizes;
     Image I;
 
     void Simulate()
@@ -57,8 +59,6 @@ class Simulator
         // Run our actual problem (boid computation)
         auto StartTime = std::chrono::system_clock::now();
 
-        /// TODO: use omp for (spawns threads) and omp barrier/single
-
 #ifndef NDEBUG
         size_t BoidCount = 0;
         for (auto A : AllFlocks)
@@ -69,17 +69,38 @@ class Simulator
 #endif
 #pragma omp parallel num_threads(Params.NumThreads) // spawns threads
         {
-#pragma omp for schedule(static)
-            for (size_t i = 0; i < AllFlocks.size(); i++)
+            /// NOTE: the following parallel operations are per-boids
+            if (!Params.ParallelizeAcrossFlocks)
             {
-                AllFlocks[i].SenseAndPlan(omp_get_thread_num(), AllFlocks);
+                // only for the global-boid-neighbourhood layout
+                assert(GlobalParams.FlockParams.UseLocalNeighbourhoods == false);
+                std::vector<Boid> &AllBoids = *(AllFlocks.begin()->Neighbourhood.GetAllBoidsPtr());
+#pragma omp for schedule(static)
+                for (size_t i = 0; i < AllBoids.size(); i++)
+                {
+                    AllBoids[i].SenseAndPlan(omp_get_thread_num(), AllBoids);
+                }
+#pragma omp for schedule(static)
+                for (size_t i = 0; i < AllBoids.size(); i++)
+                {
+                    AllBoids[i].Act(Params.DeltaTime);
+                }
             }
+            else
+            {
+#pragma omp for schedule(static)
+                for (size_t i = 0; i < AllFlocks.size(); i++)
+                {
+                    AllFlocks[i].SenseAndPlan(omp_get_thread_num(), AllFlocks);
+                }
 #pragma omp barrier
 #pragma omp for schedule(static)
-            for (size_t i = 0; i < AllFlocks.size(); i++)
-            {
-                AllFlocks[i].Act(Params.DeltaTime);
+                for (size_t i = 0; i < AllFlocks.size(); i++)
+                {
+                    AllFlocks[i].Act(Params.DeltaTime);
+                }
             }
+            /// NOTE: the following parallel operations are per-flocks, not per-boids
 #pragma omp barrier
 #pragma omp for schedule(static)
             for (size_t i = 0; i < AllFlocks.size(); i++)
