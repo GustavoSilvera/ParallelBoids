@@ -115,11 +115,11 @@ void Flock::Delegate(const int TID, const std::vector<Flock *> &AllFlocks)
 #endif
 }
 
-void Flock::AssignToFlock(const int TID, const std::vector<Flock *> &AllFlocks)
+void Flock::AssignToFlock(const int TID)
 {
     assert(IsValidFlock());
     TIDs.AssignToFlock = TID;
-    if (AllFlocks.size() > 1) // if this is the last flock, do nothing
+    if (NearbyFlocks.size() > 1) // if this is the last flock, do nothing
     {
         Neighbourhood.ClearLocal(); // clear my local neighbourhood
         for (const Flock *Other : NearbyFlocks)

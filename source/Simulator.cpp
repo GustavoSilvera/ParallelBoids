@@ -189,7 +189,6 @@ class Simulator
 #pragma omp parallel num_threads(Params.NumThreads) // spawns threads
         {
             /// NOTE: the following parallel operations are per-flocks, not per-boids
-#pragma omp barrier
 #pragma omp for schedule(static)
             for (size_t i = 0; i < AllFlocksVec.size(); i++)
             {
@@ -199,7 +198,7 @@ class Simulator
 #pragma omp for schedule(static)
             for (size_t i = 0; i < AllFlocksVec.size(); i++)
             {
-                AllFlocksVec[i]->AssignToFlock(omp_get_thread_num(), AllFlocksVec);
+                AllFlocksVec[i]->AssignToFlock(omp_get_thread_num());
             }
 #pragma omp barrier
 #pragma omp for schedule(static)

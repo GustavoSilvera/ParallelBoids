@@ -131,7 +131,7 @@ class Flock
 
     void Delegate(const int TID, const std::vector<Flock *> &AllFlocks);
 
-    void AssignToFlock(const int TID, const std::vector<Flock *> &AllFlocks);
+    void AssignToFlock(const int TID);
 
     void ComputeBB();
 
