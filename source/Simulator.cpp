@@ -286,7 +286,7 @@ int main(int argc, char *argv[])
     else
     {
         // run on all threads
-        const std::vector<size_t> AllProcTests = {1, 2, 4, 8, 12, 16, 24, 32};
+        const std::vector<size_t> AllProcTests = {2, 4, 8, 12, 16, 24, 32};
         for (const size_t P : AllProcTests)
         {
             // overwrite NumThreads
