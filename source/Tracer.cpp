@@ -153,6 +153,7 @@ void Tracer::Dump()
             }
             std::cout << "]" << std::endl;
         }
+        T->MemoryOpMatrix.clear();
     }
     if (Params.TrackTickT)
     {
@@ -162,6 +163,7 @@ void Tracer::Dump()
             std::cout << t << ", ";
         }
         std::cout << "]" << std::endl;
+        T->TickTimes.clear();
     }
 #else
     std::cout << "Trace not executing (compiled with -DNTRACE)" << std::endl;

@@ -38,7 +38,8 @@ struct BoidParamsStruct
 
 struct SimulatorParamsStruct
 {
-    size_t NumBoids, NumThreads, NumIterations;
+    int NumThreads;
+    size_t NumBoids, NumIterations;
     double DeltaTime;
     bool ParallelizeAcrossFlocks, RenderingMovie;
 };

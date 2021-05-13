@@ -188,17 +188,20 @@ class Simulator
     {
 #pragma omp parallel num_threads(Params.NumThreads) // spawns threads
         {
-            /// NOTE: the following parallel operations are per-flocks, not per-boids
-#pragma omp for schedule(static)
-            for (size_t i = 0; i < AllFlocksVec.size(); i++)
+            if (GlobalParams.FlockParams.UseFlocks)
             {
-                AllFlocksVec[i]->Delegate(omp_get_thread_num(), AllFlocksVec);
-            }
+                /// NOTE: the following parallel operations are per-flocks, not per-boids
+#pragma omp for schedule(static)
+                for (size_t i = 0; i < AllFlocksVec.size(); i++)
+                {
+                    AllFlocksVec[i]->Delegate(omp_get_thread_num(), AllFlocksVec);
+                }
 #pragma omp barrier
 #pragma omp for schedule(static)
-            for (size_t i = 0; i < AllFlocksVec.size(); i++)
-            {
-                AllFlocksVec[i]->AssignToFlock(omp_get_thread_num());
+                for (size_t i = 0; i < AllFlocksVec.size(); i++)
+                {
+                    AllFlocksVec[i]->AssignToFlock(omp_get_thread_num());
+                }
             }
 #pragma omp barrier
 #pragma omp for schedule(static)
@@ -242,15 +245,44 @@ TracerParamsStruct Tracer::Params;
 // global params struct
 ParamsStruct GlobalParams;
 
-int main()
+void RunSimulation()
 {
-    std::srand(0); // consistent seed
-    ParseParams("params/params.ini");
     Tracer::Initialize();
     Simulator Sim;
     Sim.Simulate();
     // Dump all tracer data
     Tracer::Dump();
+}
+
+int main(int argc, char *argv[])
+{
+    std::srand(0); // consistent seed
+    if (argc == 1)
+    {
+        ParseParams("params/params.ini");
+    }
+    else
+    {
+        const std::string ParamFile(argv[1]);
+        ParseParams("params/" + ParamFile);
+    }
+    if (GlobalParams.SimulatorParams.NumThreads > 0)
+    {
+        // specify a legal thread amnt
+        RunSimulation();
+    }
+    else
+    {
+        // run on all threads
+        const std::vector<size_t> AllProcTests = {1, 2, 4, 8, 12, 16, 24, 32};
+        for (const size_t P : AllProcTests)
+        {
+            // overwrite NumThreads
+            GlobalParams.SimulatorParams.NumThreads = P;
+            RunSimulation();
+            std::cout << std::endl;
+        }
+    }
     return 0;
 }
 
