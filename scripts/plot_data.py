@@ -121,7 +121,32 @@ if __name__ == '__main__':
               y_label="Time (s)",
               axes=False,
               annotations=False)
+    time_varying_max = [2.073, 1.867, 1.7536, 1.9575, 1.675, 1.6914,
+                        1.7785, 1.9206, 1.9201, 1.882, 2.167]
+    time_varying_x = [10, 20, 30, 40, 50, 60, 70,
+                      80, 90, 100, 150]
+    v7 = plot(x_vals=time_varying_x,
+              y_vals=time_varying_max,
+              title="1000 Varying Flock Max",
+              x_label="Flock Max",
+              y_label="Time (s)",
+              axes=False,
+              annotations=False)
 
-    views = [v0, v1, v2, v3, v4, v5, v6]
+    procs = [1, 2, 4, 8, 12, 16, 24, 32]
+
+    misses_F_L = [23.492, 23.59, 23.78, 23.995, 24.211, 20.207, 18.212, 18.862]
+    faults_F_L = [2495, 2714, 2944, 3287, 3551, 3623, 3873, 4389]
+
+    misses_F_G = []
+    faults_F_G = [2879, 3558, 4746, 6030, 4473, 3608, 3752, 4302]
+
+    misses_B_G = []
+    faults_B_G = [2876, 3740, ]
+
+    misses_B_L = []
+    faults_B_L = []
+
+    views = [v7]
     for v in views:
         v.plot_graph()

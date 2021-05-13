@@ -138,13 +138,13 @@ class Simulator
             if (!GlobalParams.FlockParams.UseLocalNeighbourhoods)
             {
                 std::vector<Boid> &AllBoids = *(AllFlocks.begin()->second.Neighbourhood.GetAllBoidsPtr());
-#pragma omp for schedule(static)
+#pragma omp for schedule(dynamic)
                 for (size_t i = 0; i < AllBoids.size(); i++)
                 {
                     AllBoids[i].SenseAndPlan(omp_get_thread_num(), AllFlocks);
                 }
 #pragma omp barrier
-#pragma omp for schedule(static)
+#pragma omp for schedule(dynamic)
                 for (size_t i = 0; i < AllBoids.size(); i++)
                 {
                     AllBoids[i].Act(Params.DeltaTime);
@@ -162,13 +162,13 @@ class Simulator
                     }
                 }
 #pragma omp barrier
-#pragma omp for schedule(static)
+#pragma omp for schedule(dynamic)
                 for (size_t i = 0; i < AllBoids.size(); i++)
                 {
                     AllBoids[i]->SenseAndPlan(omp_get_thread_num(), AllFlocks);
                 }
 #pragma omp barrier
-#pragma omp for schedule(static)
+#pragma omp for schedule(dynamic)
                 for (size_t i = 0; i < AllBoids.size(); i++)
                 {
                     AllBoids[i]->Act(Params.DeltaTime);
@@ -182,13 +182,13 @@ class Simulator
 #pragma omp parallel num_threads(Params.NumThreads) // spawns threads
         {
             // parallelizing across flocks
-#pragma omp for schedule(static)
+#pragma omp for schedule(dynamic)
             for (size_t i = 0; i < AllFlocksVec.size(); i++)
             {
                 AllFlocksVec[i]->SenseAndPlan(omp_get_thread_num(), AllFlocks);
             }
 #pragma omp barrier
-#pragma omp for schedule(static)
+#pragma omp for schedule(dynamic)
             for (size_t i = 0; i < AllFlocksVec.size(); i++)
             {
                 AllFlocksVec[i]->Act(Params.DeltaTime);
@@ -203,20 +203,20 @@ class Simulator
             if (GlobalParams.FlockParams.UseFlocks)
             {
                 /// NOTE: the following parallel operations are per-flocks, not per-boids
-#pragma omp for schedule(static)
+#pragma omp for schedule(dynamic)
                 for (size_t i = 0; i < AllFlocksVec.size(); i++)
                 {
                     AllFlocksVec[i]->Delegate(omp_get_thread_num(), AllFlocksVec);
                 }
 #pragma omp barrier
-#pragma omp for schedule(static)
+#pragma omp for schedule(dynamic)
                 for (size_t i = 0; i < AllFlocksVec.size(); i++)
                 {
                     AllFlocksVec[i]->AssignToFlock(omp_get_thread_num());
                 }
             }
 #pragma omp barrier
-#pragma omp for schedule(static)
+#pragma omp for schedule(dynamic)
             for (size_t i = 0; i < AllFlocksVec.size(); i++)
             {
                 AllFlocksVec[i]->ComputeBB();
@@ -240,7 +240,7 @@ class Simulator
             Flock &F = It->second;
             AllFlocksVec.push_back(&F);
         }
-#pragma omp parallel for num_threads(Params.NumThreads) schedule(static)
+#pragma omp parallel for num_threads(Params.NumThreads) schedule(dynamic)
         for (size_t i = 0; i < AllFlocksVec.size(); i++)
         {
             AllFlocksVec[i]->Draw(I);

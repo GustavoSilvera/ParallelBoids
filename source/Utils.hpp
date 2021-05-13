@@ -47,7 +47,8 @@ struct SimulatorParamsStruct
 struct FlockParamsStruct
 {
     bool UseFlocks;
-    size_t MaxSize, MaxNumComm, UseLocalNeighbourhoods;
+    int MaxSize;
+    size_t MaxNumComm, UseLocalNeighbourhoods;
     double WeightFlockSize, WeightFlockDist;
 };
 

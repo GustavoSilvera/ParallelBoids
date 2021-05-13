@@ -20,7 +20,7 @@ class data():
 
 def plot_graph(data):
     # create a figure that is 6in x 6in
-    fig = plt.figure(figsize=(6, 7))
+    fig = plt.figure(figsize=(7, 6))
 
     # the threads are all integers
     x_vals = [1, 2, 4, 8, 12, 16, 24, 32]  # num procs
@@ -35,7 +35,7 @@ def plot_graph(data):
     plt.xticks(x_vals)
     plt.yticks()
     plt.tick_params(labelsize=15)
-    plt.title('Timing: \n' + data.title + ' on ' + data.machine, fontsize=18)
+    plt.title('Timing: ' + data.title + ' on ' + data.machine, fontsize=18)
 
     # plot the data values, lines and points
     plt.plot(x_vals, data.y_vals, color='r', linewidth=1)  # red line
@@ -58,7 +58,7 @@ def plot_graph(data):
     """PLOT SPEEDUP"""
 
     # create a figure that is 6in x 6in
-    fig = plt.figure(figsize=(6, 7))
+    fig = plt.figure(figsize=(7, 6))
 
     # the threads are all integers
     x_vals = np.log2(x_vals[1:])  # num procs
@@ -74,7 +74,7 @@ def plot_graph(data):
     plt.xticks(x_vals)
     plt.yticks()
     plt.tick_params(labelsize=15)
-    plt.title('Speedup: \n' + data.title + ' on ' + data.machine, fontsize=18)
+    plt.title('Speedup: ' + data.title + ' on ' + data.machine, fontsize=18)
 
     # plot the data values, lines and points
     plt.plot(x_vals, data.y_speedup, color='r', linewidth=1)  # red line
@@ -124,26 +124,35 @@ if __name__ == '__main__':
     # all_data.append(data([seq['20k'], 48.185, 33.051, 15.558, 22.396, 26.282, 26.665, 16.681],
     #                      "20000 Parallel Flocks", "Local"))
 
-    # all_data.append(data([seq['2k'], 0.807, 0.4468, 0.2602, 0.2259, 0.1742, 0.2622, 0.309],
-    #                      "2000 Parallel Boids", "Global"))
-    # all_data.append(data([seq['2k'], 0.6351, 0.375, 0.3074, 0.3559, 0.4089, 0.9834, 1.0691],
-    #                      "2000 Parallel Boids", "Local"))
-    # all_data.append(data([seq['2k'], 0.789, 0.4334, 0.259, 0.2503, 0.2003, 0.476, 0.307],
-    #                      "2000 Parallel Flocks", "Global"))
-    # all_data.append(data([seq['2k'], 0.673, 0.369, 0.2259, 0.2101, 0.1614, 0.517, 0.2468],
-    #                      "2000 Parallel Flocks", "Local"))
+    all_data.append(data([seq['2k'], 0.807, 0.4468, 0.2602, 0.2259, 0.1742, 0.2622, 0.309],
+                         "2000 Parallel Boids", "Global"))
+    all_data.append(data([seq['2k'], 0.6351, 0.375, 0.3074, 0.3559, 0.4089, 0.9834, 1.0691],
+                         "2000 Parallel Boids", "Local"))
+    all_data.append(data([seq['2k'], 0.789, 0.4334, 0.259, 0.2503, 0.2003, 0.476, 0.307],
+                         "2000 Parallel Flocks", "Global"))
+    all_data.append(data([seq['2k'], 0.673, 0.369, 0.2259, 0.2101, 0.1614, 0.517, 0.2468],
+                         "2000 Parallel Flocks", "Local"))
 
-    all_data.append(data([seq['10knf'], 64.214, 32.084, 16.0895, 11.143, 8.607, 8.907, 8.127],
-                         "10000 Parallel Boids (No Flocks)", "Global"))
-    all_data.append(data([seq['10knf'], 59.896, 31.892, 18.057, 13.969, 14.798, 18.368, 23.332],
-                         "10000 Parallel Boids (No Flocks)", "Local"))
-    all_data.append(data([seq['10knf'], 64.305, 32.518, 16.57, 11.231, 8.521, 8.576, 8.179],
-                         "10000 Parallel Flocks (No Flocks)", "Global"))
-    all_data.append(data([seq['10knf'], 59.563, 30.391, 15.907, 10.4889, 8.286, 7.505, 7.943],
-                         "10000 Parallel Flocks (No Flocks)", "Local"))
+    # all_data.append(data([seq['10knf'], 64.214, 32.084, 16.0895, 11.143, 8.607, 8.907, 8.127],
+    #                      "10000 Parallel Boids (No Flocks)", "Global"))
+    # all_data.append(data([seq['10knf'], 59.896, 31.892, 18.057, 13.969, 14.798, 18.368, 23.332],
+    #                      "10000 Parallel Boids (No Flocks)", "Local"))
+    # all_data.append(data([seq['10knf'], 64.305, 32.518, 16.57, 11.231, 8.521, 8.576, 8.179],
+    #                      "10000 Parallel Flocks (No Flocks)", "Global"))
+    # all_data.append(data([seq['10knf'], 59.563, 30.391, 15.907, 10.4889, 8.286, 7.505, 7.943],
+    #                      "10000 Parallel Flocks (No Flocks)", "Local"))
 
-    all_data.append(data([seq['10k'], 12.4488, 7.058, 5.298, 4.426, 3.778, 5.68, 3.58],
-                         "10000 Parallel Flocks (max10)", "Global"))
+    # all_data.append(data([seq['10k'], 12.4488, 7.058, 5.298, 4.426, 3.778, 5.68, 3.58],
+    #                      "10000 Parallel Flocks (max10)", "Global"))
+
+    # all_data.append(data([seq['10k'], 12.039, 7.014, 4.023, 3.372, 2.822, 3.118, 2.92],
+    #                      "10000 Parallel Boids (dynamic)", "Global"))
+    # all_data.append(data([seq['10k'], 7.544, 4.431, 2.625, 2.251, 2.193, 4.150, 3.292],
+    #                      "10000 Parallel Boids (dynamic)", "Local"))
+    # all_data.append(data([seq['10k'], 10.234, 6.058, 3.915, 3.806, 3.139, 4.380, 3.407],
+    #                      "10000 Parallel Flocks (dynamic)", "Global"))
+    # all_data.append(data([seq['10k'], 7.158, 4.005, 2.309, 2.005, 1.789, 2.233, 1.970],
+    #                      "10000 Parallel Flocks (dynamic)", "Local"))
 
     for v in all_data:
         plot_graph(v)

@@ -79,7 +79,7 @@ void Flock::Delegate(const int TID, const std::vector<Flock *> &AllFlocks)
                     // their flock is larger/eq, then I send them over there
                     double FlockRule = 0;
                     FlockRule += Params.WeightFlockSize * F->Size();
-                    if (Dist < B->Params.CollisionRadius && F->Size() < Params.MaxSize)
+                    if (Dist < B->Params.CollisionRadius && int(F->Size()) < Params.MaxSize)
                         FlockRule += Params.WeightFlockDist * (1.0 / Dist);
                     else
                         FlockRule = 0; // ignore this Boid
