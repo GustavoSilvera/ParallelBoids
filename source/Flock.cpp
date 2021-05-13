@@ -30,7 +30,7 @@ void Flock::SenseAndPlan(const int TID, const std::unordered_map<size_t, Flock> 
     }
 }
 
-void Flock::Act(const double DeltaTime)
+void Flock::Act(const float DeltaTime)
 {
     // all boids advance one timestep, can be done asynrhconously bc indep
     assert(IsValidFlock()); // make sure this flock is valid
@@ -47,7 +47,7 @@ void Flock::Delegate(const int TID, const std::vector<Flock *> &AllFlocks)
     TIDs.Delegate = TID;
 
     // clear buckets from last Delegation
-    Emigrants.clear(); // if not done first, may get double counting later
+    Emigrants.clear(); // if not done first, may get float counting later
 
     // clear nearby flocks
     NearbyFlocks.clear();
@@ -57,8 +57,8 @@ void Flock::Delegate(const int TID, const std::vector<Flock *> &AllFlocks)
 
     // Look through our neighbourhood
     const std::vector<Boid *> Boids = Neighbourhood.GetBoids();
-    std::vector<std::pair<double, size_t>> BestBoidFlocks(Boids.size(),                // corresponding to Boids
-                                                          std::make_pair(0, FlockID)); // this flock
+    std::vector<std::pair<float, size_t>> BestBoidFlocks(Boids.size(),                // corresponding to Boids
+                                                         std::make_pair(0, FlockID)); // this flock
     for (const Flock *F : ClosestFlocks)
     {
         Tracer::AddRead(FlockID, F->FlockID, Flock::DelegateOp);
@@ -74,10 +74,10 @@ void Flock::Delegate(const int TID, const std::vector<Flock *> &AllFlocks)
                     if (Peer->BoidID == B->BoidID)
                         continue; // skip self
                     Tracer::AddRead(B->GetFlockID(), Peer->GetFlockID(), Flock::SenseAndPlanOp);
-                    const double Dist = B->DistanceTo((*Peer));
+                    const float Dist = B->DistanceTo((*Peer));
                     /// NOTE: this is a very simple rule... only checking if
                     // their flock is larger/eq, then I send them over there
-                    double FlockRule = 0;
+                    float FlockRule = 0;
                     FlockRule += Params.WeightFlockSize * F->Size();
                     if (Dist < B->Params.CollisionRadius && int(F->Size()) < Params.MaxSize)
                         FlockRule += Params.WeightFlockDist * (1.0 / Dist);
@@ -190,7 +190,7 @@ std::vector<Flock *> Flock::NearestFlocks(const std::vector<Flock *> &AllFlocks)
     const Vec2D Centroid = BB.Centroid();
     for (size_t i = 0; i < Params.MaxNumComm; i++)
     {
-        double NearestDist = 1e300; // big num
+        float NearestDist = 1e300; // big num
         size_t NearestIdx = 0;
         for (size_t j = 0; j < AllFlocks.size(); j++)
         {
@@ -198,7 +198,7 @@ std::vector<Flock *> Flock::NearestFlocks(const std::vector<Flock *> &AllFlocks)
             if (!F->IsValidFlock())
                 continue; // ignore invalid flocks
             // distance to center of bounding boxes (centroids)
-            double FDist = (Centroid - F->BB.Centroid()).Size();
+            float FDist = (Centroid - F->BB.Centroid()).Size();
             if (FDist < NearestDist && F->FlockID != FlockID)
             {
                 // make sure this boid hasn't been selected before

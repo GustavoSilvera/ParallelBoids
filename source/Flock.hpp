@@ -56,8 +56,8 @@ class Flock
 
     struct BoundingBox
     {
-        double TopLeftX, TopLeftY;
-        double BottomRightX, BottomRightY;
+        float TopLeftX, TopLeftY;
+        float BottomRightX, BottomRightY;
         BoundingBox() = default;
         bool IsValidBB() const
         {
@@ -70,7 +70,7 @@ class Flock
         BoundingBox(const Vec2D &V0)
         {
             // initialize BB to a single point
-            const double MinSize = GlobalParams.BoidParams.Radius;
+            const float MinSize = GlobalParams.BoidParams.Radius;
             TopLeftX = V0[0] - MinSize;
             TopLeftY = V0[1] - MinSize;
             BottomRightX = V0[0] + MinSize;
@@ -79,13 +79,13 @@ class Flock
         }
         Vec2D Centroid() const
         {
-            const double W = BottomRightX - TopLeftX;
-            const double H = BottomRightY - TopLeftY;
+            const float W = BottomRightX - TopLeftX;
+            const float H = BottomRightY - TopLeftY;
             assert(W > 0 && H > 0);
             return Vec2D(TopLeftX + 0.5 * W, TopLeftY + 0.5 * H);
         }
 
-        bool IntersectsBB(BoundingBox B, const double Rad) const
+        bool IntersectsBB(BoundingBox B, const float Rad) const
         {
             // need to extend the bounding box by Rad
             B.TopLeftX -= Rad;
@@ -127,7 +127,7 @@ class Flock
 
     void SenseAndPlan(const int TID, const std::unordered_map<size_t, Flock> &AllFlocks);
 
-    void Act(const double DeltaTime);
+    void Act(const float DeltaTime);
 
     void Delegate(const int TID, const std::vector<Flock *> &AllFlocks);
 

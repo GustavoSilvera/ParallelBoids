@@ -8,15 +8,15 @@
 #include <iostream>
 #include <vector>
 
-inline double sqr(const double a)
+inline float sqr(const float a)
 {
     return a * a;
 }
 
-inline double RandD(const double lo, const double hi, const size_t granularity)
+inline float RandD(const float lo, const float hi, const size_t granularity)
 {
-    const double Range = hi - lo;
-    const double Scale = double(std::rand()) / RAND_MAX;
+    const float Range = hi - lo;
+    const float Scale = float(std::rand()) / RAND_MAX;
     return lo + Scale * Range;
 }
 
@@ -30,9 +30,9 @@ inline bool stob(const std::string &s)
 
 struct BoidParamsStruct
 {
-    double Cohesion, Alignment, Separation;
-    double MaxVel, Radius;
-    double NeighbourhoodRadius, CollisionRadius;
+    float Cohesion, Alignment, Separation;
+    float MaxVel, Radius;
+    float NeighbourhoodRadius, CollisionRadius;
     bool ColourByThread;
 };
 
@@ -40,7 +40,7 @@ struct SimulatorParamsStruct
 {
     int NumThreads;
     size_t NumBoids, NumIterations;
-    double DeltaTime;
+    float DeltaTime;
     bool ParallelizeAcrossFlocks, RenderingMovie;
 };
 
@@ -49,7 +49,7 @@ struct FlockParamsStruct
     bool UseFlocks;
     int MaxSize;
     size_t MaxNumComm, UseLocalNeighbourhoods;
-    double WeightFlockSize, WeightFlockDist;
+    float WeightFlockSize, WeightFlockDist;
 };
 
 struct ImageParamsStruct

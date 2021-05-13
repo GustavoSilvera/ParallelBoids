@@ -80,11 +80,11 @@ class Image
         SetPixel(Pos[0], Pos[1], C);
     }
 
-    void SetPixelW(const double X, const double Y, const Colour &C) // sets pixel with wrapping
+    void SetPixelW(const float X, const float Y, const Colour &C) // sets pixel with wrapping
     {
-        const double MaxW = Params.WindowX - 1;
-        const double MaxH = Params.WindowY - 1;
-        double ClampedX = X;
+        const float MaxW = Params.WindowX - 1;
+        const float MaxH = Params.WindowY - 1;
+        float ClampedX = X;
         if (ClampedX < 0)
         {
             ClampedX += MaxW;
@@ -94,7 +94,7 @@ class Image
             ClampedX -= MaxW;
         }
         /// same for y's
-        double ClampedY = Y;
+        float ClampedY = Y;
         if (ClampedY < 0)
         {
             ClampedY += MaxH;
@@ -113,8 +113,8 @@ class Image
         {
             for (size_t j = 0; j < Params.WindowY; j++)
             {
-                if (int(i) < int(BorderSize) || i > Params.WindowX - BorderSize || 
-                    int(j) < int(BorderSize) || j > Params.WindowY - BorderSize)
+                if (int(i) < int(BorderSize) || i > Params.WindowX - BorderSize || int(j) < int(BorderSize) ||
+                    j > Params.WindowY - BorderSize)
                 {
                     SetPixel(i, j, Colour(255, 255, 255));
                 }
@@ -128,11 +128,11 @@ class Image
 
     void DrawSolidCircle(const Vec2D &Center, const size_t Radius, const Colour &C)
     {
-        const double X = Center[0];
-        const double Y = Center[1];
-        for (double pX = X - Radius; pX < X + Radius; pX++)
+        const float X = Center[0];
+        const float Y = Center[1];
+        for (float pX = X - Radius; pX < X + Radius; pX++)
         {
-            for (double pY = Y - Radius; pY < Y + Radius; pY++)
+            for (float pY = Y - Radius; pY < Y + Radius; pY++)
             {
                 if (sqr(pX - X) + sqr(pY - Y) < sqr(Radius))
                 {
@@ -142,7 +142,7 @@ class Image
         }
     }
 
-    void SetOctants(const double X, const double x, const double Y, const double y, const Colour &C)
+    void SetOctants(const float X, const float x, const float Y, const float y, const Colour &C)
     {
         SetPixel(X + x, Y + y, C);
         SetPixel(X - x, Y + y, C);
@@ -161,8 +161,8 @@ class Image
     {
         // Faster Stroked circle, uses Mid-point circle drawing algorithm
         /// NOTE: this is slow
-        const double X = Center[0];
-        const double Y = Center[1];
+        const float X = Center[0];
+        const float Y = Center[1];
 
         // Initialising the value of P
         int P = 1 - Radius;
@@ -188,12 +188,12 @@ class Image
 
     void DrawStrokedCircleNaive(const Vec2D &Center, const size_t Radius, const Colour &C)
     {
-        const double X = Center[0];
-        const double Y = Center[1];
+        const float X = Center[0];
+        const float Y = Center[1];
 
-        for (double pX = X - Radius; pX < X + Radius; pX++)
+        for (float pX = X - Radius; pX < X + Radius; pX++)
         {
-            for (double pY = Y - Radius; pY < Y + Radius; pY++)
+            for (float pY = Y - Radius; pY < Y + Radius; pY++)
             {
                 if (sqr(pX - X) + sqr(pY - Y) < sqr(Radius) && sqr(pX - X) + sqr(pY - Y) > sqr(Radius - 1))
                 {
@@ -206,7 +206,7 @@ class Image
     void DrawLine(const Vec2D &A, const Vec2D &B, const Colour &C)
     {
         Vec2D Direction = B - A;
-        const double Magnitude = Direction.Size();
+        const float Magnitude = Direction.Size();
         Direction /= Magnitude; // normalize it
         for (size_t i = 0; i < Magnitude; i++)
         {
@@ -215,7 +215,7 @@ class Image
         }
     }
 
-    void DrawStrokedRect(const double TLX, const double TLY, const double BRX, const double BRY)
+    void DrawStrokedRect(const float TLX, const float TLY, const float BRX, const float BRY)
     {
         const Vec2D TopLeft(TLX, TLY);
         const Vec2D TopRight(BRX, TLY);

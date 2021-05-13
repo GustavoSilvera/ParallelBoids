@@ -20,10 +20,10 @@ class Boid
 
     Boid(const size_t FID) : Boid()
     {
-        const double x0 = RandD(0, GlobalParams.ImageParams.WindowX, 3);
-        const double y0 = RandD(0, GlobalParams.ImageParams.WindowY, 3);
-        const double dx0 = RandD(-1 * GlobalParams.BoidParams.MaxVel, GlobalParams.BoidParams.MaxVel, 3);
-        const double dy0 = RandD(-1 * GlobalParams.BoidParams.MaxVel, GlobalParams.BoidParams.MaxVel, 3);
+        const float x0 = RandD(0, GlobalParams.ImageParams.WindowX, 3);
+        const float y0 = RandD(0, GlobalParams.ImageParams.WindowY, 3);
+        const float dx0 = RandD(-1 * GlobalParams.BoidParams.MaxVel, GlobalParams.BoidParams.MaxVel, 3);
+        const float dy0 = RandD(-1 * GlobalParams.BoidParams.MaxVel, GlobalParams.BoidParams.MaxVel, 3);
         Position = Vec2D(x0, y0);   // set posixtion
         Velocity = Vec2D(dx0, dy0); // set initial velocity
         FlockID = FID;              // initial flock assignment
@@ -54,7 +54,7 @@ class Boid
 
     void Plan(const Boid &B, Vec2D &RCOM, Vec2D &RCOV, Vec2D &Sep, size_t &NC) const;
 
-    void Act(const double DeltaTime);
+    void Act(const float DeltaTime);
 
     void CollisionCheck(Boid &B);
 
@@ -62,11 +62,11 @@ class Boid
 
     void EdgeWrap();
 
-    bool DistanceLT(const Boid &B, const double Rad) const;
+    bool DistanceLT(const Boid &B, const float Rad) const;
 
-    bool DistanceGT(const Boid &B, const double Rad) const;
+    bool DistanceGT(const Boid &B, const float Rad) const;
 
-    double DistanceTo(const Boid &B) const;
+    float DistanceTo(const Boid &B) const;
 
     bool operator==(const Boid &B) const;
 

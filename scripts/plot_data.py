@@ -138,15 +138,48 @@ if __name__ == '__main__':
     misses_F_L = [23.492, 23.59, 23.78, 23.995, 24.211, 20.207, 18.212, 18.862]
     faults_F_L = [2495, 2714, 2944, 3287, 3551, 3623, 3873, 4389]
 
-    misses_F_G = []
+    misses_F_G = [17.015, 17.445, 17.650,
+                  18.463, 18.639, 16.848, 16.279, 16.350]
     faults_F_G = [2879, 3558, 4746, 6030, 4473, 3608, 3752, 4302]
 
-    misses_B_G = []
-    faults_B_G = [2876, 3740, ]
+    # misses_B_G = [31.564, 31.952, 32.286, 32.337, 31.055, 30.096, ]
+    # faults_B_G = [2876, 3740, ]
 
-    misses_B_L = []
-    faults_B_L = []
+    # misses_B_L = []
+    # faults_B_L = []
 
-    views = [v7]
+    v7 = plot(x_vals=procs,
+              y_vals=misses_F_L,
+              title="miss-rate of (F+L)",
+              x_label="Procs",
+              y_label="Miss Rate %",
+              axes=False,
+              annotations=False)
+
+    v8 = plot(x_vals=procs,
+              y_vals=misses_F_G,
+              title="miss-rate of (F+G)",
+              x_label="Procs",
+              y_label="Miss Rate %",
+              axes=False,
+              annotations=False)
+
+    v9 = plot(x_vals=procs,
+              y_vals=faults_F_L,
+              title="faults of (F+L)",
+              x_label="Procs",
+              y_label="Fault Count",
+              axes=False,
+              annotations=False)
+
+    v10 = plot(x_vals=procs,
+               y_vals=faults_F_G,
+               title="faults of (F+G)",
+               x_label="Procs",
+               y_label="Fault Count",
+               axes=False,
+               annotations=False)
+
+    views = [v7, v8, v9, v10]
     for v in views:
         v.plot_graph()

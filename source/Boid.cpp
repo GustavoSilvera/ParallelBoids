@@ -84,7 +84,7 @@ void Boid::Plan(const Boid &B, Vec2D &RelativeCOM, Vec2D &AvgVel, Vec2D &Separat
     NumCloseby++;
 }
 
-void Boid::Act(const double DeltaTime)
+void Boid::Act(const float DeltaTime)
 {
     assert(IsValid());
     /// NOTE: This function is meant to be independent from all other boids
@@ -103,7 +103,7 @@ void Boid::CollisionCheck(Boid &Neighbour)
     if (Neighbour.BoidID != BoidID &&                                       // not self
         (Neighbour.Position - Position).SizeSqr() < sqr(2 * Params.Radius)) // only physical collision
     {
-        const double OverlapAmnt = 1 - ((Neighbour.Position - Position).Size() / (2 * Params.Radius));
+        const float OverlapAmnt = 1 - ((Neighbour.Position - Position).Size() / (2 * Params.Radius));
         Position -= (Neighbour.Position - Position) * OverlapAmnt;
     }
 }
@@ -133,7 +133,7 @@ void Boid::EdgeWrap()
     // used to wrap the boids around to the other side of the window
     size_t MaxW = GlobalParams.ImageParams.WindowX - 1;
     size_t MaxH = GlobalParams.ImageParams.WindowY - 1;
-    double ClampedX = Position[0];
+    float ClampedX = Position[0];
     if (ClampedX < 0)
     {
         ClampedX += MaxW;
@@ -143,7 +143,7 @@ void Boid::EdgeWrap()
         ClampedX -= MaxW;
     }
     /// same for y's
-    double ClampedY = Position[1];
+    float ClampedY = Position[1];
     if (ClampedY < 0)
     {
         ClampedY += MaxH;
@@ -155,17 +155,17 @@ void Boid::EdgeWrap()
     Position = Vec2D(ClampedX, ClampedY);
 }
 
-bool Boid::DistanceGT(const Boid &B, const double Rad) const
+bool Boid::DistanceGT(const Boid &B, const float Rad) const
 {
     return ((Position - B.Position).SizeSqr() > sqr(Rad));
 }
 
-bool Boid::DistanceLT(const Boid &B, const double Rad) const
+bool Boid::DistanceLT(const Boid &B, const float Rad) const
 {
     return ((Position - B.Position).SizeSqr() < sqr(Rad));
 }
 
-double Boid::DistanceTo(const Boid &B) const
+float Boid::DistanceTo(const Boid &B) const
 {
     return (Position - B.Position).Size();
 }
