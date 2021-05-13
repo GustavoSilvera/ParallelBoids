@@ -332,10 +332,6 @@ class Simulator
                    cuDevicePtrs.velocity,
                    numBoids * sizeof(float) * 2,
                    cudaMemcpyDeviceToHost);
-        cudaMemcpy(flockID,
-                   cuDevicePtrs.flockID,
-                   numBoids * sizeof(int),
-                   cudaMemcpyDeviceToHost);
 
         UpdateBoidPosAndVel();     
         std::vector<Flock *> AllFlockPtrs = GetAllFlocksVector();
