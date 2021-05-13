@@ -10,8 +10,6 @@ bool Flock::IsValidFlock() const
 {
     if (!Valid)
         return false;
-    // if (Size() > Params.MaxSize)
-    //     return false;
     return true;
 }
 
@@ -51,18 +49,22 @@ void Flock::Delegate(const int TID, const std::vector<Flock *> &AllFlocks)
     // clear buckets from last Delegation
     Emigrants.clear(); // if not done first, may get double counting later
 
-    const std::vector<Flock *> &NearbyFlocks = AllFlocks;
-    // std::vector<Flock *> NearbyFlocks = NearestFlocks(AllFlocks);
+    // clear nearby flocks
+    NearbyFlocks.clear();
+
+    const std::vector<Flock *> &ClosestFlocks = AllFlocks;
+    // const std::vector<Flock *> ClosestFlocks = NearestFlocks(AllFlocks);
 
     // Look through our neighbourhood
     const std::vector<Boid *> Boids = Neighbourhood.GetBoids();
     std::vector<std::pair<double, size_t>> BestBoidFlocks(Boids.size(),                // corresponding to Boids
                                                           std::make_pair(0, FlockID)); // this flock
-    for (const Flock *F : NearbyFlocks)
+    for (const Flock *F : ClosestFlocks)
     {
         Tracer::AddRead(FlockID, F->FlockID, Flock::DelegateOp);
         if (F->BB.IntersectsBB(BB, GlobalParams.BoidParams.NeighbourhoodRadius))
         {
+            NearbyFlocks.push_back(const_cast<Flock *>(F));
             for (size_t b = 0; b < Boids.size(); b++)
             {
                 const Boid *B = Boids[b];
@@ -120,7 +122,7 @@ void Flock::AssignToFlock(const int TID, const std::vector<Flock *> &AllFlocks)
     if (AllFlocks.size() > 1) // if this is the last flock, do nothing
     {
         Neighbourhood.ClearLocal(); // clear my local neighbourhood
-        for (const Flock *Other : AllFlocks)
+        for (const Flock *Other : NearbyFlocks)
         {
             // Tracer::AddRead(FlockID, Other.FlockID, Flock::AssignToFlockOp);
             // O(1) dictionary accesses
@@ -182,14 +184,14 @@ void Flock::ComputeBB()
 std::vector<Flock *> Flock::NearestFlocks(const std::vector<Flock *> &AllFlocks) const
 {
     // finds the flocks physically nearest to this one
-    std::vector<Flock *> NearbyFlocks;
+    std::vector<Flock *> NearestFlocks;
     /// TODO: figure out a better approach than this naive way
     std::vector<size_t> NearbyIdxs;
     const Vec2D Centroid = BB.Centroid();
     for (size_t i = 0; i < Params.MaxNumComm; i++)
     {
         double NearestDist = 1e300; // big num
-        size_t NearestFlockIdx = 0; // first index
+        size_t NearestIdx = 0;
         for (size_t j = 0; j < AllFlocks.size(); j++)
         {
             const Flock *F = AllFlocks[j];
@@ -203,7 +205,7 @@ std::vector<Flock *> Flock::NearestFlocks(const std::vector<Flock *> &AllFlocks)
                 bool AlreadyAdded = false;
                 for (const size_t ExistingNearbyIdx : NearbyIdxs)
                 {
-                    if (F->FlockID == ExistingNearbyIdx)
+                    if (j == ExistingNearbyIdx)
                     {
                         AlreadyAdded = true;
                         break;
@@ -212,15 +214,15 @@ std::vector<Flock *> Flock::NearestFlocks(const std::vector<Flock *> &AllFlocks)
                 if (!AlreadyAdded)
                 {
                     NearestDist = FDist;
-                    NearestFlockIdx = NearestFlockIdx;
+                    NearestIdx = j;
                 }
             }
         }
-        NearbyFlocks.push_back(AllFlocks[NearestFlockIdx]); // ptr to flock
-        NearbyIdxs.push_back(NearestFlockIdx);
+        NearestFlocks.push_back(AllFlocks[NearestIdx]);
+        NearbyIdxs.push_back(NearestIdx);
     }
-    assert(NearbyFlocks.size() == Params.MaxNumComm);
-    return NearbyFlocks;
+    assert(NearestFlocks.size() == Params.MaxNumComm);
+    return NearestFlocks;
 }
 
 void Flock::Draw(Image &I) const

@@ -119,6 +119,7 @@ class Flock
     static FlockParamsStruct Params;
     NLayout Neighbourhood;
     std::unordered_map<size_t, std::vector<Boid>> Emigrants; // buckets where the delegates go
+    std::vector<Flock *> NearbyFlocks;
 
     bool IsValidFlock() const;
 

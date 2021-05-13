@@ -21,7 +21,7 @@ def plot_graph(data):
     fig = plt.figure(figsize=(6, 6))
 
     # the threads are all integers
-    x_vals = [1, 2, 4, 8, 16, 24, 32]  # num procs
+    x_vals = [1, 2, 4, 8, 12, 16, 24, 32]  # num procs
 
     # the axis limits and grid lines
     plt.grid(True)
@@ -45,7 +45,7 @@ def plot_graph(data):
 
     # complete the layout, save figure, and show the figure for you to see
     plt.tight_layout()
-    if (not os.path.exists(os.path.join(os.path.get_cwd(), results))):
+    if (not os.path.exists(os.path.join(os.getcwd(), results))):
         os.makedirs(results)
     fig.savefig(os.path.join(results, "Time_" + data.title.replace(" ", "") +
                              "_" + data.machine + '.png'))
@@ -83,7 +83,7 @@ def plot_graph(data):
      # complete the layout, save figure, and show the figure for you to see
     plt.tight_layout()
 
-    if (not os.path.exists(os.path.join(os.path.get_cwd(), results))):
+    if (not os.path.exists(os.path.join(os.getcwd(), results))):
         os.makedirs(results)
     fig.savefig(os.path.join(results, "Speedup_" + data.title.replace(" ", "") +
                              "_" + data.machine + '.png'))
@@ -91,11 +91,15 @@ def plot_graph(data):
 
 if __name__ == '__main__':
     # laptop data
-    v0 = data([],
-              "Parallel Boids", "goosinator")
-    v1 = data([],
-              "Parallel Flocks", "goosinator")
+    v0 = data([24.587, 13.073, 7.481, 4.436, 3.383, 3.554, 3.283, 3.105],
+              "Parallel Boids", "Global")
+    v1 = data([21.525, 12.914, 7.369, 4.864, 3.842, 3.477, 4.367, 3.120],
+              "Parallel Flocks", "Global")
+    v2 = data([15.267, 9.063, 5.405, 3.326, 2.869, 2.699, 3.683, 3.514],
+              "Parallel Boids", "Local")
+    v3 = data([15.232, 9.573, 5.864, 3.570, 2.796, 2.538, 2.718, 2.308],
+              "Parallel Flocks", "Local")
 
-    views = [v0, v1]
+    views = [v0, v1, v2, v3]
     for v in views:
         plot_graph(v)
