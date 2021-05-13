@@ -1,8 +1,11 @@
-import math
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 mpl.use('Agg')
+
+# output directory
+results = "py_out/"
 
 
 class data():
@@ -42,8 +45,10 @@ def plot_graph(data):
 
     # complete the layout, save figure, and show the figure for you to see
     plt.tight_layout()
-    fig.savefig("Time_" + data.title.replace(" ", "") +
-                "_" + data.machine + '.png')
+    if (not os.path.exists(os.path.join(os.path.get_cwd(), results))):
+        os.makedirs(results)
+    fig.savefig(os.path.join(results, "Time_" + data.title.replace(" ", "") +
+                             "_" + data.machine + '.png'))
     # close figure
     plt.clf()
 
@@ -77,15 +82,18 @@ def plot_graph(data):
         plt.annotate('%.3fx' % j, xy=(i, j + 0.1), fontsize=13)
      # complete the layout, save figure, and show the figure for you to see
     plt.tight_layout()
-    fig.savefig("Speedup_" + data.title.replace(" ", "") +
-                "_" + data.machine + '.png')
+
+    if (not os.path.exists(os.path.join(os.path.get_cwd(), results))):
+        os.makedirs(results)
+    fig.savefig(os.path.join(results, "Speedup_" + data.title.replace(" ", "") +
+                             "_" + data.machine + '.png'))
 
 
 if __name__ == '__main__':
     # laptop data
-    v0 = data([39.9838, 20.5884, 10.403, 5.3584, 4.2503, 3.546, 5.2531],
+    v0 = data([],
               "Parallel Boids", "goosinator")
-    v1 = data([35.213, 19.553, 12.738, 8.449, 7.745, 10.243, 17.2952],
+    v1 = data([],
               "Parallel Flocks", "goosinator")
 
     views = [v0, v1]
