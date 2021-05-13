@@ -27,52 +27,52 @@ __constant__ GlobalBoidData cuConstBoidData;
 __constant__ ParamsStruct cuConstGlobalParams;
 
 /** @return the result of adding the inputs together */
-__device__ float2 operator+(const float2 A, const float2 B)
+__device__ float2 operator+(const float2 &A, const float2 &B)
 { 
     return make_float2(A.x + B.x, A.y + B.y);
 }
 
 /** @return the result of subtracting B from A */
-__device__ float2 operator-(const float2 A, const float2 B)
+__device__ float2 operator-(const float2 &A, const float2 &B)
 {
     return make_float2(A.x - B.x, A.y - B.y);
 }
 
 /** @return the result of multiplying each element of A by v */
-__device__ float2 operator*(const float2 A, const float v) 
+__device__ float2 operator*(const float2 &A, const float v) 
 {
     return make_float2(A.x * v, A.y * v);
 }
 
 /** @return the result of dividing each element of A by v */
-__device__ float2 operator/(const float2 A, const float v) 
+__device__ float2 operator/(const float2 &A, const float v) 
 {
     return make_float2(A.x / v, A.y / v);
 }
 
 /** @return the square of the l2 norm of the specified vector */
-__device__ float sizeSqrd (float2 A) 
+__device__ float sizeSqrd (const float2 &A) 
 {
     return A.x*A.x + A.y*A.y;
 }
 
 /** @return whether or not A lies beyond a distance of radius R from B */
-__device__ bool distGT (const float2 A, const float2 B, const float R)
+__device__ bool distGT (const float2 &A, const float2 &B, const float R)
 {
     return sizeSqrd(A-B) > (R*R);
 }
 
 /** @return whether or not A lies within a distance of radius R from B */
-__device__ bool distLT (const float2 A, const float2 B, const float R)
+__device__ bool distLT (const float2 &A, const float2 &B, const float R)
 {
     return sizeSqrd(A-B) < R*R;
 }
 
-__device__ float2 normalize(const float2 A) {
+__device__ float2 normalize(const float2 &A) {
     return A / (sqrt(double(sizeSqrd(A))));
 }
 
-__device__ float2 limitMagnitudeKernel(const float2 A, const double maxMag)
+__device__ float2 limitMagnitudeKernel(const float2 &A, const double maxMag)
 {
     if (sizeSqrd(A) > maxMag * maxMag)
     {
@@ -113,8 +113,7 @@ senseAndPlanKernel()
     for(int i = 0; i < N; i++) {
         float2 posThem = position[i];
         float2 velThem = velocity[i];
-        if (i != index 
-            && !distGT(posUs,posThem, boidParams.NeighbourhoodRadius)) 
+        if (i != index && distLT(posUs,posThem,boidParams.NeighbourhoodRadius))
         {
             relCOM = relCOM + posThem;  
             relCOV = relCOV + velThem;
@@ -149,11 +148,12 @@ actKernel(double deltaTime)
     /// and the senseAndPlan() device function
     float2* position = (float2*)cuConstBoidData.position;
     float2* velocity = (float2*)cuConstBoidData.velocity;
-    float2* acceleration = (float2*)cuConstBoidData.acceleration;
+    const float2* acceleration = (float2*)cuConstBoidData.acceleration;
 
     BoidParamsStruct params = cuConstGlobalParams.BoidParams;
 
-    velocity[index] = limitMagnitudeKernel((velocity[index] + acceleration[index]), params.MaxVel);
+    velocity[index] = limitMagnitudeKernel((velocity[index] + acceleration[index]), 
+                                            params.MaxVel);
     position[index] = position[index] + (velocity[index] * deltaTime);
 }
 
@@ -221,7 +221,7 @@ class Simulator
      * Inserts the value v in the float2 array represented by arr
      * @pre i < |arr|/2
      */
-    void insertFloat2(float* arr, Vec2D v, size_t i) {
+    void insertFloat2(float* arr, const Vec2D &v, const size_t i) {
         arr[2*i] = v[0];
         arr[2*i+1] = v[1];
     }
@@ -239,18 +239,13 @@ class Simulator
 
         for (size_t i=0; i < AllBoids.size(); i++)
         {
-            Boid &boid = AllBoids[i];
-            Vec2D pos = boid.Position;
-            Vec2D vel = boid.Velocity;
-            Vec2D acc = boid.Acceleration;
-            int fID = boid.FlockID;
-            int fSize = 0;
-
-            insertFloat2(position, pos, i);
-            insertFloat2(velocity, vel, i);
-            insertFloat2(acceleration, acc,i);
-            flockID[i] = fID;
-            flockSize[i] = fSize;
+            const Boid &boid = AllBoids[i];
+            
+            insertFloat2(position, boid.Position, i);
+            insertFloat2(velocity, boid.Velocity, i);
+            insertFloat2(acceleration, boid.Acceleration, i);
+            flockID[i] = boid.FlockID;
+            flockSize[i] = 0;
         }
     }
 
@@ -370,9 +365,8 @@ class Simulator
     {
 #pragma omp parallel num_threads(Params.NumThreads) // spawns threads
         {
-            if (Params.RenderingMovie) {
+            if (GlobalParams.FlockParams.UseFlocks) {
             /// NOTE: the following parallel operations are per-flocks, not per-boids
-#pragma omp barrier
 #pragma omp for schedule(static)
                 for (size_t i = 0; i < AllFlocksVec.size(); i++)
                 {
@@ -382,7 +376,7 @@ class Simulator
 #pragma omp for schedule(static)
                 for (size_t i = 0; i < AllFlocksVec.size(); i++)
                 {
-                    AllFlocksVec[i]->AssignToFlock(omp_get_thread_num(), AllFlocksVec);
+                    AllFlocksVec[i]->AssignToFlock(omp_get_thread_num());
                 }
             }
 #pragma omp barrier
@@ -402,7 +396,6 @@ class Simulator
     {
         // draw all the boids onto the frame
         std::vector<Flock *> AllFlocksVec = GetAllFlocksVector();
-#pragma omp parallel for num_threads(Params.NumThreads) schedule(static)
         for (size_t i = 0; i < AllFlocksVec.size(); i++)
         {
             AllFlocksVec[i]->Draw(I);
@@ -425,7 +418,7 @@ ParamsStruct GlobalParams;
 int main()
 {
     std::srand(0); // consistent seed
-    ParseParams("params/params.ini");
+    ParseParams("params/cuda_params.ini");
     Simulator Sim;
     Sim.Simulate();
     // Dump all tracer data

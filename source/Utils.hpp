@@ -45,6 +45,7 @@ struct SimulatorParamsStruct
 
 struct FlockParamsStruct
 {
+    bool UseFlocks;
     size_t MaxSize, MaxNumComm, UseLocalNeighbourhoods;
     double WeightFlockSize, WeightFlockDist;
 };
@@ -140,6 +141,8 @@ inline void ParseParams(const std::string &FilePath)
             GlobalParams.FlockParams.WeightFlockSize = std::stod(ParamValue);
         else if (!ParamName.compare("weight_flock_dist"))
             GlobalParams.FlockParams.WeightFlockDist = std::stod(ParamValue);
+        else if (!ParamName.compare("use_flocks"))
+            GlobalParams.FlockParams.UseFlocks = stob(ParamValue);
         else
             continue;
     }

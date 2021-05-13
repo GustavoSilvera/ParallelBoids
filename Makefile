@@ -18,6 +18,8 @@ CFLAGS += -DNTRACE # comment to trace memory accesses
 
 
 NVCCFLAGS= -std=c++11 -O3 -m64 --gpu-architecture compute_61 -ccbin /usr/bin/gcc
+NVCCFLAGS += -DNDEBUG
+NVCCFLAGS += -DNTRACE
 NVCC=nvcc
 
 NV_LIBS += GL glut cudart
