@@ -58,7 +58,7 @@ struct ImageParamsStruct
 
 struct TracerParamsStruct
 {
-    bool TrackMem, TrackTickT;
+    bool TrackMem, TrackTickT, TrackFlockSizes;
 };
 
 struct ParamsStruct
@@ -144,6 +144,8 @@ inline void ParseParams(const std::string &FilePath)
             GlobalParams.FlockParams.WeightFlockDist = std::stod(ParamValue);
         else if (!ParamName.compare("use_flocks"))
             GlobalParams.FlockParams.UseFlocks = stob(ParamValue);
+        else if (!ParamName.compare("track_flock_sizes"))
+            GlobalParams.TracerParams.TrackFlockSizes = stob(ParamValue);
         else
             continue;
     }

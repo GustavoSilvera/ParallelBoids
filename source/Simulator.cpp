@@ -123,6 +123,7 @@ class Simulator
         {
             assert(It != AllFlocks.end());
             const Flock &F = It->second;
+            Tracer::AddFlockSize(F.Size());
             AllFlocksVec.push_back(const_cast<Flock *>(&F));
         }
         assert(AllFlocksVec.size() == AllFlocks.size());
@@ -223,6 +224,8 @@ class Simulator
         }
         // convert flock data to processor communications
         Tracer::SaveFlockMatrix(AllFlocks);
+        // compute avg flock size
+        Tracer::ComputeFlockAverageSize();
         // remove empty (invalid) flocks
         Flock::CleanUp(AllFlocks);
     }

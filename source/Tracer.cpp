@@ -137,10 +137,42 @@ void Tracer::AddTickT(const double ElapsedTime)
 #endif
 }
 
+void Tracer::AddFlockSize(const size_t FS)
+{
+    if (!Params.TrackFlockSizes)
+        return; // do nothing
+#ifndef NTRACE
+    Tracer *T = Instance();
+    T->TmpFlockSizes.push_back(FS);
+#else
+    (void)0;
+#endif
+}
+
+void Tracer::ComputeFlockAverageSize()
+{
+    if (!Params.TrackFlockSizes)
+        return; // do nothing
+#ifndef NTRACE
+    Tracer *T = Instance();
+    double avg = 0;
+    for (size_t s : T->TmpFlockSizes)
+    {
+        avg += s;
+    }
+    if (T->TmpFlockSizes.size() > 0)
+        avg /= T->TmpFlockSizes.size();
+    T->TmpFlockSizes.clear();
+    T->AvgFlockSizes.push_back(avg);
+#else
+    (void)0;
+#endif
+}
+
 void Tracer::Dump()
 {
 #ifndef NTRACE
-    const Tracer *T = Instance();
+    Tracer *T = Instance();
     if (Params.TrackMem)
     {
         std::cout << "Comms Matrix:" << std::endl;
@@ -164,6 +196,16 @@ void Tracer::Dump()
         }
         std::cout << "]" << std::endl;
         T->TickTimes.clear();
+    }
+    if (Params.TrackFlockSizes)
+    {
+        std::cout << "Flock Sizes" << std::endl << "[";
+        for (const double t : T->AvgFlockSizes)
+        {
+            std::cout << t << ", ";
+        }
+        std::cout << "]" << std::endl;
+        T->AvgFlockSizes.clear();
     }
 #else
     std::cout << "Trace not executing (compiled with -DNTRACE)" << std::endl;

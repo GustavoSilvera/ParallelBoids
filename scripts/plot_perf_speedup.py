@@ -142,5 +142,8 @@ if __name__ == '__main__':
     all_data.append(data([seq['10knf'], 59.563, 30.391, 15.907, 10.4889, 8.286, 7.505, 7.943],
                          "10000 Parallel Flocks (No Flocks)", "Local"))
 
+    all_data.append(data([seq['10k'], 12.4488, 7.058, 5.298, 4.426, 3.778, 5.68, 3.58],
+                         "10000 Parallel Flocks (max10)", "Global"))
+
     for v in all_data:
         plot_graph(v)

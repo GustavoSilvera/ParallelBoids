@@ -17,6 +17,10 @@ class Tracer
     static void AddRead(const size_t F_Requestor, const size_t F_Holder, const Flock::FlockOp F);
     // incrementors for per-frame tick time
     static void AddTickT(const double ElapsedTime);
+    // add flock size for averages
+    static void AddFlockSize(const size_t FS);
+    // compute avg
+    static void ComputeFlockAverageSize();
     // print everything to stdout
     static void Dump();
 
@@ -52,6 +56,8 @@ class Tracer
     static void AddFlockOps(const Tracer::FlockOps &FO);
     std::vector<std::vector<FlockOps>> CommunicationMatrix;
     std::vector<double> TickTimes;
+    std::vector<double> AvgFlockSizes;
+    std::vector<size_t> TmpFlockSizes;
 };
 
 #endif
