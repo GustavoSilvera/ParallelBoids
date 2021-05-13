@@ -36,10 +36,13 @@ bool NLayout::IsValid() const
             return false;
     }
     // ensure all flockmates are in the same flocks
-    for (size_t bID : BoidsGlobalData[FlockID].BoidIDs)
+    if (BoidsGlobal.size() > 0)
     {
-        if (BoidsGlobal[bID].FlockID != FlockID)
-            return false;
+        for (size_t bID : BoidsGlobalData[FlockID].BoidIDs)
+        {
+            if (BoidsGlobal[bID].FlockID != FlockID)
+                return false;
+        }
     }
     // auto Boids = GetBoids();
     // for (const Boid *B : Boids)
@@ -97,6 +100,8 @@ size_t NLayout::Size() const
         return BoidsLocal.size();
     }
     assert(UsingLayout == Global);
+    if (BoidsGlobal.size() == 0)
+        return 0;
     return BoidsGlobalData[FlockID].Size();
 }
 
@@ -172,6 +177,26 @@ void NLayout::ClearLocal()
     {
         assert(IsValid());
         BoidsLocal.clear();
+    }
+}
+
+void NLayout::Destroy()
+{
+    Boid::Destroy();
+    if (UsingLayout == Local)
+    {
+        ClearLocal();
+    }
+    assert(IsValid());
+    if (BoidsGlobal.size() > 0)
+    {
+        BoidsGlobal.clear();
+        for (auto It = BoidsGlobalData.begin(); It != BoidsGlobalData.end(); It++)
+        {
+            FlockData &F = It->second;
+            F.BoidIDs.clear();
+        }
+        BoidsGlobalData.clear();
     }
 }
 

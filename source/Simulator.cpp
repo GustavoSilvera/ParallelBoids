@@ -53,6 +53,17 @@ class Simulator
     std::unordered_map<size_t, Flock> AllFlocks;
     Image I;
 
+    void Finish()
+    {
+        for (auto It = AllFlocks.begin(); It != AllFlocks.end(); It++)
+        {
+            assert(It != AllFlocks.end());
+            Flock &F = It->second;
+            F.Destroy();
+            assert(F.Size() == 0);
+        }
+    }
+
     void Simulate()
     {
         double ElapsedTime = 0;
@@ -252,6 +263,7 @@ void RunSimulation()
     Sim.Simulate();
     // Dump all tracer data
     Tracer::Dump();
+    Sim.Finish();
 }
 
 int main(int argc, char *argv[])

@@ -269,3 +269,8 @@ void Flock::CleanUp(std::unordered_map<size_t, Flock> &AllFlocks)
     }
 #endif
 }
+
+void Flock::Destroy()
+{
+    Neighbourhood.Destroy();
+}

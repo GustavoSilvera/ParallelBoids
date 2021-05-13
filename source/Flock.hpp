@@ -140,6 +140,8 @@ class Flock
     void Draw(Image &I) const;
 
     static void CleanUp(std::unordered_map<size_t, Flock> &AllFlocks);
+
+    void Destroy();
 };
 
 #endif

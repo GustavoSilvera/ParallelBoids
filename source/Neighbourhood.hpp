@@ -14,6 +14,7 @@ class NLayout // options bs local and global boid layout
     void NewBoid(Flock *FP, const size_t FlockID);
     size_t Size() const;
     void ClearLocal();
+    void Destroy();
     bool IsValid() const;
     std::vector<Boid *> GetBoids() const;
     std::vector<Boid> *GetAllBoidsPtr() const;

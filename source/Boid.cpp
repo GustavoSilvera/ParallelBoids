@@ -179,3 +179,8 @@ bool operator==(const Boid &B1, const Boid &B2)
 {
     return B1.BoidID == B2.BoidID;
 }
+
+void Boid::Destroy()
+{
+    NumBoids = 0;
+}

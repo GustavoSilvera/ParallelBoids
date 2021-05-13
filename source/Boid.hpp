@@ -69,6 +69,8 @@ class Boid
     double DistanceTo(const Boid &B) const;
 
     bool operator==(const Boid &B) const;
+
+    static void Destroy();
 };
 
 #endif
