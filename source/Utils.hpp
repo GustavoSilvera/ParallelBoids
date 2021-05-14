@@ -55,6 +55,7 @@ struct FlockParamsStruct
 struct ImageParamsStruct
 {
     size_t WindowX, WindowY;
+    bool RenderBB;
 };
 
 struct TracerParamsStruct
@@ -147,6 +148,8 @@ inline void ParseParams(const std::string &FilePath)
             GlobalParams.FlockParams.UseFlocks = stob(ParamValue);
         else if (!ParamName.compare("track_flock_sizes"))
             GlobalParams.TracerParams.TrackFlockSizes = stob(ParamValue);
+        else if (!ParamName.compare("render_flock_bounding_box"))
+            GlobalParams.ImageParams.RenderBB = stob(ParamValue);
         else
             continue;
     }

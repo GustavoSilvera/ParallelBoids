@@ -231,7 +231,10 @@ void Flock::Draw(Image &I) const
 
     /// TODO: check if can-parallelize?
     std::vector<Boid *> Boids = Neighbourhood.GetBoids();
-    I.DrawStrokedRect(BB.TopLeftX, BB.TopLeftY, BB.BottomRightX, BB.BottomRightY);
+    if (GlobalParams.ImageParams.RenderBB)
+    {
+        I.DrawStrokedRect(BB.TopLeftX, BB.TopLeftY, BB.BottomRightX, BB.BottomRightY);
+    }
     for (Boid *B : Boids)
     {
         B->Draw(I);

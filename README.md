@@ -73,8 +73,9 @@ weight_flock_size=0.1       # how much boids weigh flock sizes when transisionin
 weight_flock_dist=0.9       # how much boids weigh flock distance when transisioning
 
 [Image]
-window_x=1000 # horizontal size of the output image 
-window_y=1000 # vertical size of the output image 
+window_x=1000 				   # horizontal size of the output image 
+window_y=1000 				   # vertical size of the output image 
+render_flock_bounding_box=true # option to draw red squares around flocks
 
 [Trace]
 track_mem=false        # whether the tracer should track memory (broken)
