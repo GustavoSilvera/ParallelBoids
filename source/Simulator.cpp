@@ -67,23 +67,15 @@ class Simulator
     void Simulate()
     {
         double ElapsedTime = 0;
-        double SenseTime = 0;
-        double ActTime = 0;
-        double DelegateTime = 0;
-        double AssignTime = 0;
         for (size_t i = 0; i < Params.NumIterations; i++)
         {
-            ElapsedTime += Tick(SenseTime, ActTime, DelegateTime, AssignTime);
+            ElapsedTime += Tick();
             std::cout << "Tick: " << i << "\r" << std::flush; // carriage return, no newline
         }
         std::cout << "Finished simulation! Took " << ElapsedTime << "s" << std::endl;
-        std::cout << "Total SenseT " << SenseTime << std::endl;
-        std::cout << "Total ActT " << ActTime << std::endl;
-        std::cout << "Total DelegateT " << DelegateTime << std::endl;
-        std::cout << "Total AssignT " << AssignTime << std::endl;
     }
 
-    double Tick(double &SenseTime, double &ActTime, double &DelegateTime, double &AssignTime)
+    double Tick()
     {
         // Run our actual problem (boid computation)
         auto StartTime = std::chrono::system_clock::now();
@@ -105,10 +97,10 @@ class Simulator
         std::vector<Flock *> AllFlocksVec = GetAllFlocksVector();
 
         if (!Params.ParallelizeAcrossFlocks)
-            ParallelBoids(AllFlocksVec, SenseTime, ActTime);
+            ParallelBoids(AllFlocksVec);
         else
-            ParallelFlocks(AllFlocksVec, SenseTime, ActTime);
-        UpdateFlocks(AllFlocksVec, DelegateTime, AssignTime);
+            ParallelFlocks(AllFlocksVec);
+        UpdateFlocks(AllFlocksVec);
 
         auto EndTime = std::chrono::system_clock::now();
         std::chrono::duration<double> ElapsedTime = EndTime - StartTime;
@@ -138,52 +130,29 @@ class Simulator
         return AllFlocksVec;
     }
 
-    void ParallelBoids(std::vector<Flock *> AllFlocksVec, double &SenseT, double ActT)
+    void ParallelBoids(std::vector<Flock *> AllFlocksVec)
     {
         /// NOTE: the following parallel operations are per-boids
-        std::chrono::time_point<std::chrono::system_clock> StartTime1;
-        std::chrono::time_point<std::chrono::system_clock> EndTime1;
-        std::chrono::time_point<std::chrono::system_clock> EndTime2;
 #pragma omp parallel num_threads(Params.NumThreads) // spawns threads
         {
             if (!GlobalParams.FlockParams.UseLocalNeighbourhoods)
             {
                 std::vector<Boid> &AllBoids = *(AllFlocks.begin()->second.Neighbourhood.GetAllBoidsPtr());
-#pragma omp single
-                {
-                    StartTime1 = std::chrono::system_clock::now();
-                }
 #pragma omp for schedule(dynamic)
                 for (size_t i = 0; i < AllBoids.size(); i++)
                 {
                     AllBoids[i].SenseAndPlan(omp_get_thread_num(), AllFlocks);
                 }
 #pragma omp barrier
-#pragma omp single
-                {
-                    EndTime1 = std::chrono::system_clock::now();
-                    std::chrono::duration<double> ElapsedTime1 = EndTime1 - StartTime1;
-                    SenseT += ElapsedTime1.count();
-                }
 #pragma omp for schedule(dynamic)
                 for (size_t i = 0; i < AllBoids.size(); i++)
                 {
                     AllBoids[i].Act(Params.DeltaTime);
                 }
-#pragma omp single
-                {
-                    EndTime2 = std::chrono::system_clock::now();
-                    std::chrono::duration<double> ElapsedTime2 = EndTime2 - EndTime1;
-                    ActT += ElapsedTime2.count();
-                }
             }
             else
             {
                 std::vector<Boid *> AllBoids;
-#pragma omp single
-                {
-                    StartTime1 = std::chrono::system_clock::now();
-                }
                 for (const Flock *F : AllFlocksVec)
                 {
 #pragma omp critical
@@ -199,101 +168,51 @@ class Simulator
                     AllBoids[i]->SenseAndPlan(omp_get_thread_num(), AllFlocks);
                 }
 #pragma omp barrier
-#pragma omp single
-                {
-                    EndTime1 = std::chrono::system_clock::now();
-                    std::chrono::duration<double> ElapsedTime1 = EndTime1 - StartTime1;
-                    SenseT += ElapsedTime1.count();
-                }
 #pragma omp for schedule(dynamic)
                 for (size_t i = 0; i < AllBoids.size(); i++)
                 {
                     AllBoids[i]->Act(Params.DeltaTime);
                 }
-#pragma omp single
-                {
-                    EndTime2 = std::chrono::system_clock::now();
-                    std::chrono::duration<double> ElapsedTime2 = EndTime2 - EndTime1;
-                    ActT += ElapsedTime2.count();
-                }
             }
         }
     }
 
-    void ParallelFlocks(std::vector<Flock *> AllFlocksVec, double &SenseT, double &ActT)
+    void ParallelFlocks(std::vector<Flock *> AllFlocksVec)
     {
-        std::chrono::time_point<std::chrono::system_clock> StartTime1;
-        std::chrono::time_point<std::chrono::system_clock> EndTime1;
-        std::chrono::time_point<std::chrono::system_clock> EndTime2;
 #pragma omp parallel num_threads(Params.NumThreads) // spawns threads
         {
             // parallelizing across flocks
-#pragma omp single
-            {
-                StartTime1 = std::chrono::system_clock::now();
-            }
 #pragma omp for schedule(dynamic)
             for (size_t i = 0; i < AllFlocksVec.size(); i++)
             {
                 AllFlocksVec[i]->SenseAndPlan(omp_get_thread_num(), AllFlocks);
             }
 #pragma omp barrier
-#pragma omp single
-            {
-                EndTime1 = std::chrono::system_clock::now();
-                std::chrono::duration<double> ElapsedTime1 = EndTime1 - StartTime1;
-                SenseT += ElapsedTime1.count();
-            }
 #pragma omp for schedule(dynamic)
             for (size_t i = 0; i < AllFlocksVec.size(); i++)
             {
                 AllFlocksVec[i]->Act(Params.DeltaTime);
             }
-#pragma omp single
-            {
-                EndTime2 = std::chrono::system_clock::now();
-                std::chrono::duration<double> ElapsedTime2 = EndTime2 - EndTime1;
-                ActT += ElapsedTime2.count();
-            }
         }
     }
 
-    void UpdateFlocks(std::vector<Flock *> AllFlocksVec, double &DelegateT, double &AssignT)
+    void UpdateFlocks(std::vector<Flock *> AllFlocksVec)
     {
-        std::chrono::time_point<std::chrono::system_clock> StartTime1;
-        std::chrono::time_point<std::chrono::system_clock> EndTime1;
-        std::chrono::time_point<std::chrono::system_clock> EndTime2;
 #pragma omp parallel num_threads(Params.NumThreads) // spawns threads
         {
             if (GlobalParams.FlockParams.UseFlocks)
             {
                 /// NOTE: the following parallel operations are per-flocks, not per-boids
-#pragma omp single
-                {
-                    StartTime1 = std::chrono::system_clock::now();
-                }
 #pragma omp for schedule(dynamic)
                 for (size_t i = 0; i < AllFlocksVec.size(); i++)
                 {
                     AllFlocksVec[i]->Delegate(omp_get_thread_num(), AllFlocksVec);
                 }
 #pragma omp barrier
-#pragma omp single
-                {
-                    EndTime1 = std::chrono::system_clock::now();
-                    std::chrono::duration<double> ElapsedTime1 = EndTime1 - StartTime1;
-                    DelegateT += ElapsedTime1.count();
-                }
 #pragma omp for schedule(dynamic)
                 for (size_t i = 0; i < AllFlocksVec.size(); i++)
                 {
                     AllFlocksVec[i]->AssignToFlock(omp_get_thread_num());
-                }
-#pragma omp single
-                {
-                    EndTime2 = std::chrono::system_clock::now();
-                    std::chrono::duration<double> ElapsedTime2 = EndTime2 - EndTime1;
-                    AssignT += ElapsedTime2.count();
                 }
             }
 #pragma omp barrier
@@ -379,25 +298,6 @@ int main(int argc, char *argv[])
             std::cout << std::endl;
         }
     }
-    // if (GlobalParams.FlockParams.MaxSize > 0)
-    // {
-    //     // specify a legal thread amnt
-    //     RunSimulation();
-    // }
-    // else
-    // {
-    //     // run on all threads
-    //     // const std::vector<size_t> AllProcTests = {2, 4, 8, 12, 16, 24, 32};
-    //     // const std::vector<size_t> AllProcTests = {10, 50, 100, 200, 500, 1000, 2000};
-    //     const std::vector<size_t> AllProcTests = {10, 20, 30, 40, 50, 60, 70, 80, 90, 100};
-    //     for (const size_t P : AllProcTests)
-    //     {
-    //         // overwrite NumThreads
-    //         GlobalParams.FlockParams.MaxSize = P;
-    //         RunSimulation();
-    //         std::cout << std::endl;
-    //     }
-    // }
     return 0;
 }
 
